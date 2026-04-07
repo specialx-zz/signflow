@@ -1,0 +1,7 @@
+{
+  "main": "7za-wrapper.cjs",
+  "output": "7za-sea-prep.blob",
+  "disableExperimentalSEAWarning": true,
+  "useSnapshot": false,
+  "useCodeCache": false
+}

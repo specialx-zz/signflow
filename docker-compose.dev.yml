@@ -1,0 +1,48 @@
+version: '3.8'
+
+# 개발용 Docker Compose (docker-compose -f docker-compose.dev.yml up)
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: signflow-backend-dev
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DATABASE_URL=file:/app/prisma/dev.db
+      - JWT_SECRET=signflow-dev-secret-key
+      - JWT_EXPIRES_IN=7d
+      - SERVER_URL=http://localhost:3001
+      - LOG_LEVEL=debug
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/prisma:/app/prisma
+      - ./backend/uploads:/app/uploads
+    command: npx nodemon src/app.js
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: signflow-frontend-dev
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:3001
+    volumes:
+      - ./frontend/src:/app/src
+    command: npm run dev -- --host 0.0.0.0
+
+  player:
+    build:
+      context: ./player
+      dockerfile: Dockerfile.dev
+    container_name: signflow-player-dev
+    ports:
+      - "5174:5174"
+    volumes:
+      - ./player/src:/app/src
+    command: npm run dev -- --host 0.0.0.0

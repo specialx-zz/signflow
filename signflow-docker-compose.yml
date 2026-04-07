@@ -1,0 +1,114 @@
+version: '3.8'
+
+# SignFlow 단독 배포용 Docker Compose
+# 사용법: docker-compose -f signflow-docker-compose.yml up -d
+
+services:
+  # ─── Backend API ──────────────────────────────────
+  signflow-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: signflow-backend
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Seoul
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: "file:/app/data/signflow.db"
+      JWT_SECRET: "${JWT_SECRET:-change-this-secret-to-random-32chars!!}"
+      JWT_EXPIRES_IN: "7d"
+      SERVER_URL: "${SERVER_URL:-http://localhost}"
+      LOG_LEVEL: info
+      # R2 Storage (optional)
+      R2_ACCOUNT_ID: "${R2_ACCOUNT_ID:-}"
+      R2_ACCESS_KEY_ID: "${R2_ACCESS_KEY_ID:-}"
+      R2_SECRET_ACCESS_KEY: "${R2_SECRET_ACCESS_KEY:-}"
+      R2_BUCKET: "${R2_BUCKET:-}"
+      R2_PUBLIC_URL: "${R2_PUBLIC_URL:-}"
+    volumes:
+      - signflow-data:/app/data
+      - signflow-uploads:/app/uploads
+    expose:
+      - "3001"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - signflow-net
+
+  # ─── Nginx (Frontend + Player + Reverse Proxy) ───
+  signflow-nginx:
+    image: nginx:1.25-alpine
+    container_name: signflow-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/signflow-standalone.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - signflow-frontend-dist:/usr/share/nginx/signflow-admin:ro
+      - signflow-player-dist:/usr/share/nginx/signflow-player:ro
+    depends_on:
+      - signflow-backend
+    networks:
+      - signflow-net
+
+  # ─── Frontend Builder (build-only) ────────────────
+  signflow-frontend-build:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: "/api"
+    container_name: signflow-frontend-build
+    volumes:
+      - signflow-frontend-dist:/app/dist
+    command: ["sh", "-c", "cp -r /app/dist/* /app/dist/"]
+    profiles:
+      - build
+
+  # ─── Player Builder (build-only) ──────────────────
+  signflow-player-build:
+    build:
+      context: ./player
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: "/api"
+    container_name: signflow-player-build
+    volumes:
+      - signflow-player-dist:/app/dist
+    command: ["sh", "-c", "cp -r /app/dist/* /app/dist/"]
+    profiles:
+      - build
+
+  # ─── Auto Backup ──────────────────────────────────
+  signflow-backup:
+    image: alpine:3.19
+    container_name: signflow-backup
+    restart: unless-stopped
+    volumes:
+      - signflow-data:/data:ro
+      - signflow-backups:/backups
+      - ./scripts/backup.sh:/etc/periodic/daily/backup:ro
+    entrypoint: /bin/sh
+    command: ["-c", "chmod +x /etc/periodic/daily/backup && crond -f -l 2"]
+
+volumes:
+  signflow-data:
+  signflow-uploads:
+  signflow-frontend-dist:
+  signflow-player-dist:
+  signflow-backups:
+
+networks:
+  signflow-net:
+    driver: bridge

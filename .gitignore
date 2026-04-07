@@ -1,0 +1,71 @@
+# ─── 의존성 ───────────────────────────────────────────────
+node_modules/
+
+# ─── 환경변수 (민감 정보 포함) ────────────────────────────
+.env
+.env.local
+.env.production
+.env.*.local
+# 예시 파일은 커밋 허용
+!.env.*.example
+
+# ─── 데이터베이스 ─────────────────────────────────────────
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# ─── 업로드 파일 ──────────────────────────────────────────
+uploads/
+backend/uploads/
+
+# ─── 빌드 결과물 ──────────────────────────────────────────
+dist/
+build/
+out/
+
+# ─── Electron 빌드 ────────────────────────────────────────
+player/release/
+player/dist-electron/
+
+# ─── Android 빌드 (소스는 커밋, 빌드 결과물은 제외) ──────
+player/android/.gradle/
+player/android/app/build/
+player/android/build/
+player/android/local.properties
+player/android/captures/
+player/android/.idea/
+
+# ─── 로그 ────────────────────────────────────────────────
+*.log
+npm-debug.log*
+logs/
+
+# ─── 캐시 ────────────────────────────────────────────────
+.vite/
+.eslintcache
+*.tsbuildinfo
+
+# ─── 테스트 결과 ──────────────────────────────────────────
+coverage/
+playwright-report/
+test-results/
+screenshots/
+
+# ─── IDE ─────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ─── OS ──────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── 기타 ────────────────────────────────────────────────
+*.pem
+*.key
+test_1px.png

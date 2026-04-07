@@ -1,0 +1,38 @@
+name: Docker Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        working-directory: backend
+        run: |
+          docker build -t signflow-backend:${{ github.ref_name || 'latest' }} .
+          echo "Backend image built successfully"
+
+      - name: Test image health
+        working-directory: backend
+        run: |
+          docker run -d --name signflow-test \
+            -e DATABASE_URL="file:./prisma/dev.db" \
+            -e JWT_SECRET="docker-test-secret" \
+            -e NODE_ENV=production \
+            -p 3099:3001 \
+            signflow-backend:${{ github.ref_name || 'latest' }}
+          sleep 5
+          curl -f http://localhost:3099/health || exit 1
+          docker stop signflow-test
+          docker rm signflow-test

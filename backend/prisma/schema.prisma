@@ -1,0 +1,758 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── 테넌트 (업체) ─────────────────────────────────
+model Tenant {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  logo        String?
+  brandColor  String?  @default("#3B82F6")
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+  address     String?
+  timezone    String   @default("Asia/Seoul")
+  settings    String?  @default("{}")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subscription  Subscription?
+  users         User[]
+  stores        Store[]
+  devices       Device[]
+  deviceGroups  DeviceGroup[]
+  content       Content[]
+  categories    ContentCategory[]
+  playlists     Playlist[]
+  layouts       Layout[]
+  schedules     Schedule[]
+  statistics    Statistics[]
+  auditLogs     AuditLog[]
+  channels      Channel[]
+  screenWalls   ScreenWall[]
+  syncGroups    SyncGroup[]
+  customFonts   CustomFont[]
+}
+
+// ─── 매장 ─────────────────────────────────────────
+model Store {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  address     String?
+  phone       String?
+  managerId   String?
+  isActive    Boolean  @default(true)
+  settings    String?  @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  devices     Device[]
+  deviceGroups DeviceGroup[]
+
+  @@index([tenantId])
+}
+
+// ─── 구독 / 과금 ──────────────────────────────────
+model Subscription {
+  id              String   @id @default(uuid())
+  tenantId        String   @unique
+  plan            String   @default("starter")
+  billingCycle    String   @default("monthly")
+  status          String   @default("trial")
+  maxDevices      Int      @default(5)
+  maxStorageGB    Int      @default(5)
+  maxUsers        Int      @default(3)
+  maxStores       Int      @default(2)
+  startDate       DateTime @default(now())
+  endDate         DateTime?
+  trialEndDate    DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+}
+
+// ─── 사용자 ───────────────────────────────────────
+model User {
+  id        String   @id @default(uuid())
+  tenantId  String
+  username  String   @unique
+  email     String   @unique
+  password  String
+  role      String   @default("USER")
+  storeId   String?
+  isActive  Boolean  @default(true)
+  lastLogin DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
+  content    Content[]
+  playlists  Playlist[]
+  schedules  Schedule[]
+  auditLogs  AuditLog[]
+  layouts    Layout[]
+  channels   Channel[]  @relation("channelCreator")
+
+  @@index([tenantId])
+}
+
+// ─── 콘텐츠 카테고리 ──────────────────────────────
+model ContentCategory {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  parentId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant    Tenant            @relation(fields: [tenantId], references: [id])
+  contents  Content[]
+  parent    ContentCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children  ContentCategory[] @relation("CategoryHierarchy")
+
+  @@index([tenantId])
+}
+
+// ─── 콘텐츠 ───────────────────────────────────────
+model Content {
+  id            String   @id @default(uuid())
+  tenantId      String
+  name          String
+  type          String
+  mimeType      String?
+  size          Int      @default(0)
+  duration      Int?
+  width         Int?
+  height        Int?
+  thumbnail     String?
+  filePath      String
+  url           String?
+  storageType   String   @default("local") // 'local' | 'r2'
+  categoryId    String?
+  createdBy     String
+  isActive      Boolean  @default(true)
+  tags          String?
+  metadata      String?
+  // V4 Phase 11: 콘텐츠 생애주기 (라이프스팬 & 엠바고)
+  startAt       DateTime?                    // 엠바고: 이 시각 이후부터 게시
+  expiresAt     DateTime?                    // 라이프스팬: 이 시각 이후 자동 만료
+  publishStatus String   @default("published") // published | scheduled | expired | disabled
+  // V4 Phase 12a: 캔버스 에디터
+  isCanvas      Boolean  @default(false)     // 캔버스로 만든 콘텐츠 여부
+  canvasJson    String?                      // 캔버스 JSON 데이터
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant        Tenant           @relation(fields: [tenantId], references: [id])
+  category      ContentCategory? @relation(fields: [categoryId], references: [id])
+  creator       User             @relation(fields: [createdBy], references: [id])
+  playlistItems   PlaylistItem[]
+  statistics      Statistics[]
+  channelContents ChannelContent[]
+  versions        ContentVersion[]
+
+  @@index([tenantId])
+  @@index([publishStatus])
+  @@index([expiresAt])
+  @@index([startAt])
+}
+
+// ─── 플레이리스트 ─────────────────────────────────
+model Playlist {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  type        String   @default("GENERAL")
+  description String?
+  thumbnail   String?
+  duration    Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdBy   String
+  settings    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant         @relation(fields: [tenantId], references: [id])
+  creator     User           @relation(fields: [createdBy], references: [id])
+  items              PlaylistItem[]
+  schedules          Schedule[]
+  layoutZones        LayoutZone[]
+  scheduleConditions ScheduleCondition[] @relation("conditionPlaylist")
+
+  @@index([tenantId])
+}
+
+model PlaylistItem {
+  id         String   @id @default(uuid())
+  playlistId String
+  contentId  String
+  order      Int
+  duration   Int      @default(10)
+  settings   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  content  Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@index([playlistId])
+  @@index([contentId])
+}
+
+// ─── 스케줄 ───────────────────────────────────────
+model Schedule {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  type        String   @default("CONTENT")
+  playlistId  String?
+  layoutId    String?
+  startDate   DateTime
+  endDate     DateTime?
+  startTime   String?
+  endTime     String?
+  repeatType  String   @default("NONE")
+  repeatDays  String?
+  isActive    Boolean  @default(true)
+  status      String   @default("DRAFT")
+  createdBy   String
+  settings    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant    Tenant           @relation(fields: [tenantId], references: [id])
+  creator   User             @relation(fields: [createdBy], references: [id])
+  playlist  Playlist?        @relation(fields: [playlistId], references: [id], onDelete: SetNull)
+  layout    Layout?          @relation(fields: [layoutId], references: [id], onDelete: SetNull)
+  devices    ScheduleDevice[]
+  conditions ScheduleCondition[]
+
+  @@index([tenantId])
+}
+
+model ScheduleCondition {
+  id         String   @id @default(uuid())
+  scheduleId String
+  tagKey     String   // 예: "매장타입"
+  tagValue   String   // 예: "카페"
+  playlistId String   // 조건 매칭 시 재생할 플레이리스트
+  priority   Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  playlist   Playlist @relation("conditionPlaylist", fields: [playlistId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId])
+}
+
+model ScheduleDevice {
+  id         String   @id @default(uuid())
+  scheduleId String
+  deviceId   String
+  status     String   @default("PENDING")
+  deployedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  schedule Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  device   Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId])
+  @@index([deviceId])
+}
+
+// ─── 디바이스 그룹 ────────────────────────────────
+model DeviceGroup {
+  id          String   @id @default(uuid())
+  tenantId    String
+  storeId     String?
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  store   Store?  @relation(fields: [storeId], references: [id])
+  devices Device[]
+
+  @@index([tenantId])
+}
+
+// ─── 디바이스 ─────────────────────────────────────
+model Device {
+  id           String   @id @default(uuid())
+  tenantId     String
+  storeId      String?
+  name         String
+  deviceId     String   @unique
+  groupId      String?
+  status       String   @default("OFFLINE")
+  ipAddress    String?
+  macAddress   String?
+  model        String?
+  firmware     String?
+  resolution   String?
+  orientation  String   @default("LANDSCAPE")
+  timezone     String   @default("Asia/Seoul")
+  volume       Int      @default(50)
+  brightness   Int      @default(100)
+  isActive     Boolean  @default(true)
+  lastSeen     DateTime?
+  settings     String?
+  location     String?
+  // V4 Phase 14: 태그 기반 조건 재생
+  tags         String?  // JSON: {"매장타입": "카페", "지역": "서울", "층": "1층"}
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant     Tenant           @relation(fields: [tenantId], references: [id])
+  store      Store?           @relation(fields: [storeId], references: [id])
+  group      DeviceGroup?     @relation(fields: [groupId], references: [id])
+  schedules  ScheduleDevice[]
+  statistics Statistics[]
+  channelDevices    ChannelDevice[]
+  screenWallDevices ScreenWallDevice[]
+  syncGroupDevices  SyncGroupDevice[]
+
+  @@index([tenantId])
+}
+
+// ─── 통계 ─────────────────────────────────────────
+model Statistics {
+  id        String   @id @default(uuid())
+  tenantId  String
+  deviceId  String?
+  contentId String?
+  type      String
+  value     Int      @default(0)
+  date      DateTime @default(now())
+  metadata  String?
+
+  tenant  Tenant?  @relation(fields: [tenantId], references: [id])
+  device  Device?  @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  content Content? @relation(fields: [contentId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([date])
+  @@index([deviceId])
+  @@index([contentId])
+}
+
+// ─── 감사 로그 ────────────────────────────────────
+model AuditLog {
+  id        String   @id @default(uuid())
+  tenantId  String
+  userId    String
+  action    String
+  target    String?
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ─── 레이아웃 ─────────────────────────────────────
+model Layout {
+  id          String       @id @default(uuid())
+  tenantId    String
+  name        String
+  description String?
+  baseWidth   Int          @default(1920)
+  baseHeight  Int          @default(1080)
+  thumbnail   String?
+  createdBy   String
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  tenant    Tenant       @relation(fields: [tenantId], references: [id])
+  creator   User         @relation(fields: [createdBy], references: [id])
+  zones     LayoutZone[]
+  schedules Schedule[]
+
+  @@index([tenantId])
+}
+
+model LayoutZone {
+  id          String  @id @default(uuid())
+  layoutId    String
+  name        String
+  x           Float
+  y           Float
+  width       Float
+  height      Float
+  zIndex      Int     @default(1)
+  contentType String  @default("PLAYLIST")
+  playlistId  String?
+  sourceUrl   String?
+  sourceHtml  String?
+  bgColor     String? @default("#000000")
+  fit         String? @default("cover")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  layout   Layout    @relation(fields: [layoutId], references: [id], onDelete: Cascade)
+  playlist Playlist? @relation(fields: [playlistId], references: [id], onDelete: SetNull)
+
+  @@index([layoutId])
+}
+
+// ─── 디바이스 등록 토큰 ──────────────────────────────────────
+model DeviceRegistrationToken {
+  id        String   @id @default(uuid())
+  tenantId  String
+  storeId   String?
+  code      String   @unique  // 6자리 영숫자 코드
+  name      String?            // 예정 디바이스 이름
+  usedBy    String?            // 사용된 디바이스 ID
+  isUsed    Boolean  @default(false)
+  expiresAt DateTime
+  createdBy String
+  createdAt DateTime @default(now())
+
+  @@index([code])
+  @@index([tenantId])
+}
+
+// ─── 긴급 메시지 ─────────────────────────────────────
+model EmergencyMessage {
+  id          String   @id @default(uuid())
+  tenantId    String
+  title       String
+  message     String
+  type        String   @default("INFO")     // INFO | WARNING | DANGER | CUSTOM
+  bgColor     String?  @default("#EF4444")
+  textColor   String?  @default("#FFFFFF")
+  fontSize    Int?     @default(48)
+  displayMode String   @default("OVERLAY")  // OVERLAY | FULLSCREEN | TICKER
+  priority    Int      @default(100)         // 높을수록 우선
+  targetType  String   @default("ALL")      // ALL | STORE | DEVICE
+  targetIds   String?                        // JSON array of store/device IDs
+  isActive    Boolean  @default(true)
+  startAt     DateTime @default(now())
+  expiresAt   DateTime?
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([isActive, expiresAt])
+}
+
+// ─── 공유 콘텐츠 라이브러리 (본사 → 전 테넌트) ────────────
+model SharedContent {
+  id          String   @id @default(uuid())
+  name        String
+  type        String
+  mimeType    String?
+  size        Int      @default(0)
+  filePath    String
+  storageType String   @default("local")
+  thumbnail   String?
+  tags        String?
+  category    String?
+  description String?
+  isActive    Boolean  @default(true)
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── 콘텐츠 승인 워크플로 ────────────────────────────
+model ContentApproval {
+  id          String   @id @default(uuid())
+  tenantId    String
+  contentId   String
+  status      String   @default("PENDING")  // PENDING | APPROVED | REJECTED
+  requestedBy String
+  reviewedBy  String?
+  comment     String?
+  requestedAt DateTime @default(now())
+  reviewedAt  DateTime?
+
+  @@index([tenantId])
+  @@index([contentId])
+  @@index([status])
+}
+
+// ─── 콘텐츠 배포 추적 (플레이어 다운로드 상태) ─────────────
+model ContentDeployment {
+  id          String   @id @default(uuid())
+  deviceId    String   // Device.id (internal UUID)
+  contentId   String
+  scheduleId  String?
+  status      String   @default("PENDING") // PENDING | DOWNLOADING | COMPLETED | FAILED
+  progress    Int      @default(0)         // 0-100 percentage
+  fileSize    Int      @default(0)
+  downloadedAt DateTime?
+  errorMessage String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([deviceId, contentId])
+  @@index([deviceId])
+  @@index([status])
+}
+
+// ─── 알림 ─────────────────────────────────────────
+model Notification {
+  id        String   @id @default(uuid())
+  tenantId  String
+  userId    String
+  type      String   // DEVICE_STATUS, APPROVAL, EMERGENCY, QUOTA, SUBSCRIPTION, SYSTEM
+  title     String
+  message   String
+  data      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([tenantId])
+}
+
+// ─── 콘텐츠 템플릿 마켓플레이스 ────────────────────────
+model ContentTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  category    String
+  type        String   @default("IMAGE")
+  thumbnail   String?
+  filePath    String
+  storageType String   @default("local")
+  downloads   Int      @default(0)
+  rating      Float    @default(0)
+  reviewCount Int      @default(0)
+  isPremium   Boolean  @default(false)
+  tags        String?
+  createdBy   String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TemplateReview {
+  id         String   @id @default(uuid())
+  templateId String
+  userId     String
+  tenantId   String
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+  @@unique([templateId, userId])
+  @@index([templateId])
+}
+
+// ─── 웹훅 ─────────────────────────────────────────
+model Webhook {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  url       String
+  secret    String?
+  events    String   // comma-separated: device.online,device.offline,content.uploaded,schedule.deployed,emergency.created
+  isActive  Boolean  @default(true)
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([tenantId])
+}
+
+model WebhookLog {
+  id         String   @id @default(uuid())
+  webhookId  String
+  event      String
+  payload    String
+  statusCode Int?
+  response   String?
+  success    Boolean  @default(false)
+  attempts   Int      @default(1)
+  createdAt  DateTime @default(now())
+  @@index([webhookId])
+  @@index([createdAt])
+}
+
+// ─── V4 Phase 12a: 캔버스 템플릿 ─────────────────────
+model CanvasTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  category    String   @default("general")
+  thumbnail   String?
+  canvasJson  String   // 전체 캔버스 JSON
+  tags        String?
+  isPublic    Boolean  @default(false)  // 공유 템플릿 여부
+  tenantId    String?  // null이면 공개 템플릿
+  createdBy   String
+  useCount    Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([tenantId])
+  @@index([category])
+}
+
+// ─── V4 Phase 13: 채널 시스템 ─────────────────────────
+model Channel {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  description String?
+  isDefault   Boolean  @default(false)  // 기본 채널 (스케줄 없을 때 재생)
+  isActive    Boolean  @default(true)
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant            @relation(fields: [tenantId], references: [id])
+  creator     User              @relation("channelCreator", fields: [createdBy], references: [id])
+  contents    ChannelContent[]
+  devices     ChannelDevice[]
+
+  @@index([tenantId])
+}
+
+model ChannelContent {
+  id         String   @id @default(uuid())
+  channelId  String
+  contentId  String
+  order      Int       @default(0)
+  duration   Int?      // null이면 콘텐츠 기본 재생시간 사용
+  createdAt  DateTime  @default(now())
+
+  channel    Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  content    Content   @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@index([channelId])
+}
+
+model ChannelDevice {
+  channelId  String
+  deviceId   String
+  assignedAt DateTime @default(now())
+
+  channel    Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  device     Device  @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@id([channelId, deviceId])
+}
+
+// ─── V4 Phase 15: 스크린 월 ───────────────────────────
+model ScreenWall {
+  id         String   @id @default(uuid())
+  tenantId   String
+  name       String
+  rows       Int      // 행 수
+  cols       Int      // 열 수
+  bezelH     Float    @default(0)   // 수평 베젤 두께 (mm)
+  bezelV     Float    @default(0)   // 수직 베젤 두께 (mm)
+  screenW    Float?   // 개별 화면 물리 가로 (mm)
+  screenH    Float?   // 개별 화면 물리 세로 (mm)
+  isActive   Boolean  @default(true)
+  createdBy  String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant     Tenant             @relation(fields: [tenantId], references: [id])
+  devices    ScreenWallDevice[]
+
+  @@index([tenantId])
+}
+
+model ScreenWallDevice {
+  id       String @id @default(uuid())
+  wallId   String
+  deviceId String
+  row      Int    // 0-based
+  col      Int    // 0-based
+
+  wall     ScreenWall @relation(fields: [wallId], references: [id], onDelete: Cascade)
+  device   Device     @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([wallId, row, col])
+  @@unique([wallId, deviceId])
+}
+
+// ─── V4 Phase 15: 동기화 재생 그룹 ────────────────────
+model SyncGroup {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  masterDeviceId String?  // 마스터 장치
+  syncMode    String   @default("LAN")  // LAN | WAN
+  driftThreshold Int   @default(200)     // ms — LAN: 200, WAN: 1000
+  isActive    Boolean  @default(true)
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant            @relation(fields: [tenantId], references: [id])
+  devices     SyncGroupDevice[]
+
+  @@index([tenantId])
+}
+
+model SyncGroupDevice {
+  id         String @id @default(uuid())
+  groupId    String
+  deviceId   String
+  isMaster   Boolean @default(false)
+
+  group      SyncGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  device     Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, deviceId])
+}
+
+// ─── V4 Phase 12b: 커스텀 폰트 ───────────────────────
+model CustomFont {
+  id         String   @id @default(uuid())
+  tenantId   String
+  name       String    // 표시 이름
+  family     String    // CSS font-family
+  fileUrl    String    // /uploads/fonts/xxx.woff2
+  format     String   @default("woff2")
+  weight     String   @default("400")
+  style      String   @default("normal")
+  isActive   Boolean  @default(true)
+  uploadedBy String
+  createdAt  DateTime @default(now())
+
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@unique([tenantId, family, weight, style])
+}
+
+// ─── V4 Phase 12b: 콘텐츠 버저닝 ─────────────────────
+model ContentVersion {
+  id         String   @id @default(uuid())
+  contentId  String
+  version    Int
+  canvasJson String
+  thumbnail  String?
+  comment    String?
+  createdBy  String
+  createdAt  DateTime @default(now())
+
+  content    Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@index([contentId])
+  @@unique([contentId, version])
+}

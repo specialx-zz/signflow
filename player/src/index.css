@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Hide scrollbars globally */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* ═══════════════════════════════════════════════
+   Playlist transition animations
+   ─ entering layer always sits on top (z-index 2)
+   ═══════════════════════════════════════════════ */
+
+/* Fade: new content fades in over old */
+@keyframes plx-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.plx-entering-fade {
+  animation: plx-fade 0.7s ease forwards;
+}
+
+/* Slide Left: new content enters from the right */
+@keyframes plx-slide-left {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.plx-entering-slide-left {
+  animation: plx-slide-left 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* Slide Right: new content enters from the left */
+@keyframes plx-slide-right {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+.plx-entering-slide-right {
+  animation: plx-slide-right 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* Slide Up: new content enters from bottom */
+@keyframes plx-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.plx-entering-slide-up {
+  animation: plx-slide-up 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* Zoom In: new content grows from center with fade */
+@keyframes plx-zoom-in {
+  from { opacity: 0; transform: scale(1.12); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.plx-entering-zoom-in {
+  animation: plx-zoom-in 0.65s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+}
+
+/* Blur: new content materialises through blur */
+@keyframes plx-blur {
+  from { opacity: 0; filter: blur(28px); transform: scale(1.04); }
+  to   { opacity: 1; filter: blur(0);    transform: scale(1); }
+}
+.plx-entering-blur {
+  animation: plx-blur 0.75s ease forwards;
+}
+
+/* Fade-out for stable layer (used with fade transition) */
+@keyframes plx-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+.plx-leaving-fade {
+  animation: plx-fade-out 0.7s ease forwards;
+}
