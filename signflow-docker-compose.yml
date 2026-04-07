@@ -4,6 +4,34 @@ version: '3.8'
 # 사용법: docker-compose -f signflow-docker-compose.yml up -d
 
 services:
+  # ─── MySQL Database ────────────────────────────────
+  signflow-mysql:
+    image: mysql:8.0
+    container_name: signflow-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-changeme-root-password}"
+      MYSQL_DATABASE: signflow
+      MYSQL_USER: signflow
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD:-changeme-signflow-password}"
+      TZ: Asia/Seoul
+    volumes:
+      - signflow-mysql-data:/var/lib/mysql
+    expose:
+      - "3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "signflow", "--password=${MYSQL_PASSWORD:-changeme-signflow-password}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - signflow-net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
   # ─── Backend API ──────────────────────────────────
   signflow-backend:
     build:
@@ -15,7 +43,7 @@ services:
       TZ: Asia/Seoul
       NODE_ENV: production
       PORT: 3001
-      DATABASE_URL: "file:/app/data/signflow.db"
+      DATABASE_URL: "mysql://signflow:${MYSQL_PASSWORD:-changeme-signflow-password}@signflow-mysql:3306/signflow"
       JWT_SECRET: "${JWT_SECRET:-change-this-secret-to-random-32chars!!}"
       JWT_EXPIRES_IN: "7d"
       SERVER_URL: "${SERVER_URL:-http://localhost}"
@@ -27,16 +55,18 @@ services:
       R2_BUCKET: "${R2_BUCKET:-}"
       R2_PUBLIC_URL: "${R2_PUBLIC_URL:-}"
     volumes:
-      - signflow-data:/app/data
       - signflow-uploads:/app/uploads
     expose:
       - "3001"
+    depends_on:
+      signflow-mysql:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 15s
+      start_period: 30s
     deploy:
       resources:
         limits:
@@ -92,18 +122,27 @@ services:
 
   # ─── Auto Backup ──────────────────────────────────
   signflow-backup:
-    image: alpine:3.19
+    image: mysql:8.0
     container_name: signflow-backup
     restart: unless-stopped
+    environment:
+      MYSQL_HOST: signflow-mysql
+      MYSQL_USER: signflow
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD:-changeme-signflow-password}"
+      MYSQL_DATABASE: signflow
     volumes:
-      - signflow-data:/data:ro
       - signflow-backups:/backups
       - ./scripts/backup.sh:/etc/periodic/daily/backup:ro
     entrypoint: /bin/sh
     command: ["-c", "chmod +x /etc/periodic/daily/backup && crond -f -l 2"]
+    depends_on:
+      signflow-mysql:
+        condition: service_healthy
+    networks:
+      - signflow-net
 
 volumes:
-  signflow-data:
+  signflow-mysql-data:
   signflow-uploads:
   signflow-frontend-dist:
   signflow-player-dist:

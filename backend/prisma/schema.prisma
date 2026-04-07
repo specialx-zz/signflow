@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -19,7 +19,7 @@ model Tenant {
   contactPhone String?
   address     String?
   timezone    String   @default("Asia/Seoul")
-  settings    String?  @default("{}")
+  settings    String?  @db.Text
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -51,7 +51,7 @@ model Store {
   phone       String?
   managerId   String?
   isActive    Boolean  @default(true)
-  settings    String?  @default("{}")
+  settings    String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -138,19 +138,19 @@ model Content {
   thumbnail     String?
   filePath      String
   url           String?
-  storageType   String   @default("local") // 'local' | 'r2'
+  storageType   String   @default("local")
   categoryId    String?
   createdBy     String
   isActive      Boolean  @default(true)
-  tags          String?
-  metadata      String?
+  tags          String?  @db.Text
+  metadata      String?  @db.Text
   // V4 Phase 11: 콘텐츠 생애주기 (라이프스팬 & 엠바고)
-  startAt       DateTime?                    // 엠바고: 이 시각 이후부터 게시
-  expiresAt     DateTime?                    // 라이프스팬: 이 시각 이후 자동 만료
-  publishStatus String   @default("published") // published | scheduled | expired | disabled
+  startAt       DateTime?
+  expiresAt     DateTime?
+  publishStatus String   @default("published")
   // V4 Phase 12a: 캔버스 에디터
-  isCanvas      Boolean  @default(false)     // 캔버스로 만든 콘텐츠 여부
-  canvasJson    String?                      // 캔버스 JSON 데이터
+  isCanvas      Boolean  @default(false)
+  canvasJson    String?  @db.LongText
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -179,7 +179,7 @@ model Playlist {
   duration    Int      @default(0)
   isActive    Boolean  @default(true)
   createdBy   String
-  settings    String?
+  settings    String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -199,7 +199,7 @@ model PlaylistItem {
   contentId  String
   order      Int
   duration   Int      @default(10)
-  settings   String?
+  settings   String?  @db.Text
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -227,7 +227,7 @@ model Schedule {
   isActive    Boolean  @default(true)
   status      String   @default("DRAFT")
   createdBy   String
-  settings    String?
+  settings    String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -244,9 +244,9 @@ model Schedule {
 model ScheduleCondition {
   id         String   @id @default(uuid())
   scheduleId String
-  tagKey     String   // 예: "매장타입"
-  tagValue   String   // 예: "카페"
-  playlistId String   // 조건 매칭 시 재생할 플레이리스트
+  tagKey     String
+  tagValue   String
+  playlistId String
   priority   Int      @default(0)
   createdAt  DateTime @default(now())
 
@@ -308,10 +308,10 @@ model Device {
   brightness   Int      @default(100)
   isActive     Boolean  @default(true)
   lastSeen     DateTime?
-  settings     String?
+  settings     String?  @db.Text
   location     String?
   // V4 Phase 14: 태그 기반 조건 재생
-  tags         String?  // JSON: {"매장타입": "카페", "지역": "서울", "층": "1층"}
+  tags         String?  @db.Text
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -336,7 +336,7 @@ model Statistics {
   type      String
   value     Int      @default(0)
   date      DateTime @default(now())
-  metadata  String?
+  metadata  String?  @db.Text
 
   tenant  Tenant?  @relation(fields: [tenantId], references: [id])
   device  Device?  @relation(fields: [deviceId], references: [id], onDelete: SetNull)
@@ -355,7 +355,7 @@ model AuditLog {
   userId    String
   action    String
   target    String?
-  details   String?
+  details   String?  @db.Text
   ipAddress String?
   createdAt DateTime @default(now())
 
@@ -401,7 +401,7 @@ model LayoutZone {
   contentType String  @default("PLAYLIST")
   playlistId  String?
   sourceUrl   String?
-  sourceHtml  String?
+  sourceHtml  String?  @db.LongText
   bgColor     String? @default("#000000")
   fit         String? @default("cover")
   createdAt   DateTime @default(now())
@@ -418,9 +418,9 @@ model DeviceRegistrationToken {
   id        String   @id @default(uuid())
   tenantId  String
   storeId   String?
-  code      String   @unique  // 6자리 영숫자 코드
-  name      String?            // 예정 디바이스 이름
-  usedBy    String?            // 사용된 디바이스 ID
+  code      String   @unique
+  name      String?
+  usedBy    String?
   isUsed    Boolean  @default(false)
   expiresAt DateTime
   createdBy String
@@ -435,15 +435,15 @@ model EmergencyMessage {
   id          String   @id @default(uuid())
   tenantId    String
   title       String
-  message     String
-  type        String   @default("INFO")     // INFO | WARNING | DANGER | CUSTOM
+  message     String   @db.Text
+  type        String   @default("INFO")
   bgColor     String?  @default("#EF4444")
   textColor   String?  @default("#FFFFFF")
   fontSize    Int?     @default(48)
-  displayMode String   @default("OVERLAY")  // OVERLAY | FULLSCREEN | TICKER
-  priority    Int      @default(100)         // 높을수록 우선
-  targetType  String   @default("ALL")      // ALL | STORE | DEVICE
-  targetIds   String?                        // JSON array of store/device IDs
+  displayMode String   @default("OVERLAY")
+  priority    Int      @default(100)
+  targetType  String   @default("ALL")
+  targetIds   String?  @db.Text
   isActive    Boolean  @default(true)
   startAt     DateTime @default(now())
   expiresAt   DateTime?
@@ -465,9 +465,9 @@ model SharedContent {
   filePath    String
   storageType String   @default("local")
   thumbnail   String?
-  tags        String?
+  tags        String?  @db.Text
   category    String?
-  description String?
+  description String?  @db.Text
   isActive    Boolean  @default(true)
   createdBy   String
   createdAt   DateTime @default(now())
@@ -479,10 +479,10 @@ model ContentApproval {
   id          String   @id @default(uuid())
   tenantId    String
   contentId   String
-  status      String   @default("PENDING")  // PENDING | APPROVED | REJECTED
+  status      String   @default("PENDING")
   requestedBy String
   reviewedBy  String?
-  comment     String?
+  comment     String?  @db.Text
   requestedAt DateTime @default(now())
   reviewedAt  DateTime?
 
@@ -494,11 +494,11 @@ model ContentApproval {
 // ─── 콘텐츠 배포 추적 (플레이어 다운로드 상태) ─────────────
 model ContentDeployment {
   id          String   @id @default(uuid())
-  deviceId    String   // Device.id (internal UUID)
+  deviceId    String
   contentId   String
   scheduleId  String?
-  status      String   @default("PENDING") // PENDING | DOWNLOADING | COMPLETED | FAILED
-  progress    Int      @default(0)         // 0-100 percentage
+  status      String   @default("PENDING")
+  progress    Int      @default(0)
   fileSize    Int      @default(0)
   downloadedAt DateTime?
   errorMessage String?
@@ -515,10 +515,10 @@ model Notification {
   id        String   @id @default(uuid())
   tenantId  String
   userId    String
-  type      String   // DEVICE_STATUS, APPROVAL, EMERGENCY, QUOTA, SUBSCRIPTION, SYSTEM
+  type      String
   title     String
-  message   String
-  data      String?
+  message   String   @db.Text
+  data      String?  @db.Text
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
@@ -530,7 +530,7 @@ model Notification {
 model ContentTemplate {
   id          String   @id @default(uuid())
   name        String
-  description String?
+  description String?  @db.Text
   category    String
   type        String   @default("IMAGE")
   thumbnail   String?
@@ -540,7 +540,7 @@ model ContentTemplate {
   rating      Float    @default(0)
   reviewCount Int      @default(0)
   isPremium   Boolean  @default(false)
-  tags        String?
+  tags        String?  @db.Text
   createdBy   String
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -553,7 +553,7 @@ model TemplateReview {
   userId     String
   tenantId   String
   rating     Int
-  comment    String?
+  comment    String?  @db.Text
   createdAt  DateTime @default(now())
   @@unique([templateId, userId])
   @@index([templateId])
@@ -566,7 +566,7 @@ model Webhook {
   name      String
   url       String
   secret    String?
-  events    String   // comma-separated: device.online,device.offline,content.uploaded,schedule.deployed,emergency.created
+  events    String   @db.Text
   isActive  Boolean  @default(true)
   createdBy String
   createdAt DateTime @default(now())
@@ -578,9 +578,9 @@ model WebhookLog {
   id         String   @id @default(uuid())
   webhookId  String
   event      String
-  payload    String
+  payload    String   @db.LongText
   statusCode Int?
-  response   String?
+  response   String?  @db.LongText
   success    Boolean  @default(false)
   attempts   Int      @default(1)
   createdAt  DateTime @default(now())
@@ -595,10 +595,10 @@ model CanvasTemplate {
   description String?
   category    String   @default("general")
   thumbnail   String?
-  canvasJson  String   // 전체 캔버스 JSON
-  tags        String?
-  isPublic    Boolean  @default(false)  // 공유 템플릿 여부
-  tenantId    String?  // null이면 공개 템플릿
+  canvasJson  String   @db.LongText
+  tags        String?  @db.Text
+  isPublic    Boolean  @default(false)
+  tenantId    String?
   createdBy   String
   useCount    Int      @default(0)
   isActive    Boolean  @default(true)
@@ -614,7 +614,7 @@ model Channel {
   tenantId    String
   name        String
   description String?
-  isDefault   Boolean  @default(false)  // 기본 채널 (스케줄 없을 때 재생)
+  isDefault   Boolean  @default(false)
   isActive    Boolean  @default(true)
   createdBy   String
   createdAt   DateTime @default(now())
@@ -633,7 +633,7 @@ model ChannelContent {
   channelId  String
   contentId  String
   order      Int       @default(0)
-  duration   Int?      // null이면 콘텐츠 기본 재생시간 사용
+  duration   Int?
   createdAt  DateTime  @default(now())
 
   channel    Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
@@ -658,12 +658,12 @@ model ScreenWall {
   id         String   @id @default(uuid())
   tenantId   String
   name       String
-  rows       Int      // 행 수
-  cols       Int      // 열 수
-  bezelH     Float    @default(0)   // 수평 베젤 두께 (mm)
-  bezelV     Float    @default(0)   // 수직 베젤 두께 (mm)
-  screenW    Float?   // 개별 화면 물리 가로 (mm)
-  screenH    Float?   // 개별 화면 물리 세로 (mm)
+  rows       Int
+  cols       Int
+  bezelH     Float    @default(0)
+  bezelV     Float    @default(0)
+  screenW    Float?
+  screenH    Float?
   isActive   Boolean  @default(true)
   createdBy  String
   createdAt  DateTime @default(now())
@@ -679,8 +679,8 @@ model ScreenWallDevice {
   id       String @id @default(uuid())
   wallId   String
   deviceId String
-  row      Int    // 0-based
-  col      Int    // 0-based
+  row      Int
+  col      Int
 
   wall     ScreenWall @relation(fields: [wallId], references: [id], onDelete: Cascade)
   device   Device     @relation(fields: [deviceId], references: [id], onDelete: Cascade)
@@ -691,16 +691,16 @@ model ScreenWallDevice {
 
 // ─── V4 Phase 15: 동기화 재생 그룹 ────────────────────
 model SyncGroup {
-  id          String   @id @default(uuid())
-  tenantId    String
-  name        String
-  masterDeviceId String?  // 마스터 장치
-  syncMode    String   @default("LAN")  // LAN | WAN
-  driftThreshold Int   @default(200)     // ms — LAN: 200, WAN: 1000
-  isActive    Boolean  @default(true)
-  createdBy   String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(uuid())
+  tenantId       String
+  name           String
+  masterDeviceId String?
+  syncMode       String   @default("LAN")
+  driftThreshold Int      @default(200)
+  isActive       Boolean  @default(true)
+  createdBy      String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   tenant      Tenant            @relation(fields: [tenantId], references: [id])
   devices     SyncGroupDevice[]
@@ -724,9 +724,9 @@ model SyncGroupDevice {
 model CustomFont {
   id         String   @id @default(uuid())
   tenantId   String
-  name       String    // 표시 이름
-  family     String    // CSS font-family
-  fileUrl    String    // /uploads/fonts/xxx.woff2
+  name       String
+  family     String
+  fileUrl    String
   format     String   @default("woff2")
   weight     String   @default("400")
   style      String   @default("normal")
@@ -745,7 +745,7 @@ model ContentVersion {
   id         String   @id @default(uuid())
   contentId  String
   version    Int
-  canvasJson String
+  canvasJson String   @db.LongText
   thumbnail  String?
   comment    String?
   createdBy  String
