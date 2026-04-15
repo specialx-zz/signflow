@@ -4,6 +4,7 @@
 
 const prisma = require('../utils/prisma');
 const { v4: uuidv4 } = require('uuid');
+const { verifyTenantOwnership } = require('../middleware/tenant');
 
 // ═══════════════════════════════════════════════════
 // 스크린 월 CRUD
@@ -94,7 +95,7 @@ const updateScreenWall = async (req, res) => {
 
     const existing = await prisma.screenWall.findUnique({ where: { id: req.params.id } });
     if (!existing) return res.status(404).json({ error: '스크린 월을 찾을 수 없습니다' });
-    if (existing.tenantId !== req.tenantId) return res.status(403).json({ error: '권한이 없습니다' });
+    if (!verifyTenantOwnership(existing, req)) return res.status(403).json({ error: '권한이 없습니다' });
 
     const wall = await prisma.screenWall.update({
       where: { id: req.params.id },
@@ -120,7 +121,7 @@ const deleteScreenWall = async (req, res) => {
   try {
     const wall = await prisma.screenWall.findUnique({ where: { id: req.params.id } });
     if (!wall) return res.status(404).json({ error: '스크린 월을 찾을 수 없습니다' });
-    if (wall.tenantId !== req.tenantId) return res.status(403).json({ error: '권한이 없습니다' });
+    if (!verifyTenantOwnership(wall, req)) return res.status(403).json({ error: '권한이 없습니다' });
 
     await prisma.screenWall.delete({ where: { id: req.params.id } });
     res.json({ message: '스크린 월이 삭제되었습니다' });
@@ -218,12 +219,26 @@ const setLayout = async (req, res) => {
 // 특정 장치의 스크린 월 정보 (플레이어용)
 const getDeviceWallInfo = async (req, res) => {
   try {
-    const assignment = await prisma.screenWallDevice.findFirst({
-      where: { deviceId: req.params.deviceId },
-      include: {
-        wall: true
-      }
+    const paramId = req.params.deviceId;
+
+    // 1차: 서버 PK(id)로 직접 조회
+    let assignment = await prisma.screenWallDevice.findFirst({
+      where: { deviceId: paramId },
+      include: { wall: true }
     });
+
+    // 2차: Player UUID(deviceId 필드)로 조회 — Player는 자체 생성 UUID를 사용
+    if (!assignment) {
+      const device = await prisma.device.findFirst({
+        where: { deviceId: paramId }
+      });
+      if (device) {
+        assignment = await prisma.screenWallDevice.findFirst({
+          where: { deviceId: device.id },
+          include: { wall: true }
+        });
+      }
+    }
 
     if (!assignment) {
       return res.json({ inWall: false });
@@ -348,7 +363,7 @@ const deleteSyncGroup = async (req, res) => {
   try {
     const group = await prisma.syncGroup.findUnique({ where: { id: req.params.id } });
     if (!group) return res.status(404).json({ error: '동기화 그룹을 찾을 수 없습니다' });
-    if (group.tenantId !== req.tenantId) return res.status(403).json({ error: '권한이 없습니다' });
+    if (!verifyTenantOwnership(group, req)) return res.status(403).json({ error: '권한이 없습니다' });
 
     await prisma.syncGroup.delete({ where: { id: req.params.id } });
     res.json({ message: '동기화 그룹이 삭제되었습니다' });
