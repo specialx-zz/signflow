@@ -1,6 +1,7 @@
 import { useLocation, Link } from 'react-router-dom'
 import { ChevronRight, LogOut, Menu, Sun, Moon, Monitor, User, Wifi, WifiOff } from 'lucide-react'
 import NotificationCenter from './NotificationCenter'
+import TenantSwitcher from './TenantSwitcher'
 import { useAuthStore } from '@/store/authStore'
 import { useTheme } from '@/hooks/useTheme'
 import { useSocket, disconnectSocket } from '@/hooks/useSocket'
@@ -108,6 +109,9 @@ export default function Header({ onMenuToggle }: HeaderProps) {
 
       {/* Right side */}
       <div className="flex items-center gap-2 lg:gap-4">
+        {/* Tenant switcher — SUPER_ADMIN only (SPEC-001) */}
+        <TenantSwitcher />
+
         {/* Connection status */}
         <div className={`items-center gap-1.5 text-xs hidden sm:flex ${connected ? 'text-green-600' : 'text-gray-400'}`}>
           {connected ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}

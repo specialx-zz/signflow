@@ -10,9 +10,16 @@ const apiClient = axios.create({
 })
 
 apiClient.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token
+  const { token, user, activeTenantId } = useAuthStore.getState()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+  }
+  // SUPER_ADMIN tenant scope injection (SPEC-001).
+  // Only set the header when both conditions hold so that:
+  //   - non-SUPER_ADMIN roles never send the header (backend ignores it, but avoid noise)
+  //   - "전체 업체" mode (null) omits the header → backend returns all tenants
+  if (user?.role === 'SUPER_ADMIN' && activeTenantId) {
+    config.headers['X-Tenant-Id'] = activeTenantId
   }
   return config
 })
