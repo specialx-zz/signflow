@@ -2,7 +2,7 @@ import axios from 'axios'
 import type { DeviceConfig, ScheduleEntry, Playlist, DeviceStatus } from '../types'
 
 // 빌드 시 VITE_API_URL 환경변수로 기본 서버 URL 주입 가능
-// 예) VITE_API_URL=https://api.signflow.com npm run build
+// 예) VITE_API_URL=https://api.vuesign.com npm run build
 // 미설정 시 개발용 localhost 사용
 let baseURL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3001'
 
@@ -42,7 +42,7 @@ export interface RegisterDeviceResponse {
 }
 
 /**
- * Register this device with the SignFlow server.
+ * Register this device with the VueSign server.
  */
 export async function registerDevice(config: Omit<DeviceConfig, 'registeredAt'>): Promise<RegisterDeviceResponse> {
   const payload: RegisterDevicePayload = {
@@ -97,9 +97,15 @@ export async function fetchWallInfo(deviceId: string) {
 
 /**
  * Fetch a single playlist by ID.
+ *
+ * The deviceId is REQUIRED on unauthenticated player requests — the backend
+ * uses it to verify the device and the playlist belong to the same tenant
+ * (replaces the old self-validating ?tenantId=... query that allowed IDOR).
  */
-export async function fetchPlaylist(playlistId: string): Promise<Playlist> {
-  const response = await apiClient.get<Playlist>(`/api/playlists/${playlistId}`)
+export async function fetchPlaylist(playlistId: string, deviceId: string): Promise<Playlist> {
+  const response = await apiClient.get<Playlist>(`/api/playlists/${playlistId}`, {
+    params: { deviceId }
+  })
   return response.data
 }
 

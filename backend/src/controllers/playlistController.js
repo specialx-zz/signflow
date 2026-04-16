@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const { verifyTenantOwnership } = require('../middleware/tenant');
 const { v4: uuidv4 } = require('uuid');
 
 const getPlaylists = async (req, res) => {
@@ -55,16 +56,34 @@ const getPlaylistById = async (req, res) => {
       return res.status(404).json({ error: 'Playlist not found' });
     }
 
-    // For unauthenticated player requests, require tenantId query param to prevent cross-tenant IDOR
+    // Unauthenticated player requests: indirect tenant verification via device.
+    //
+    // Why not use ?tenantId=...? The previous implementation accepted a
+    // tenantId query param and required `playlist.tenantId === query.tenantId`.
+    // That is self-validating — an attacker only needed to know the playlist's
+    // own tenantId (often guessable or leaked) to satisfy the check. IDOR.
+    //
+    // Fix: the player MUST pass ?deviceId=<its-own-id>. We resolve the device,
+    // confirm it belongs to the same tenant as the playlist, and only then
+    // serve the response. An attacker cannot forge a deviceId belonging to
+    // another tenant — the device row anchors the trust, not the URL.
     if (!req.user) {
-      const { tenantId } = req.query;
-      if (!tenantId || playlist.tenantId !== tenantId) {
+      const { deviceId } = req.query;
+      if (!deviceId) {
+        return res.status(403).json({ error: '디바이스 식별자가 필요합니다' });
+      }
+      // Accept either Device.id (PK) or Device.deviceId (player-generated UUID)
+      const device = await prisma.device.findFirst({
+        where: { OR: [{ id: deviceId }, { deviceId }] },
+        select: { tenantId: true }
+      });
+      if (!device || device.tenantId !== playlist.tenantId) {
         return res.status(403).json({ error: '접근 권한이 없습니다' });
       }
     }
 
-    // Check tenant ownership (skip if no auth, e.g. player routes)
-    if (req.tenantId && playlist.tenantId !== req.tenantId) {
+    // Authenticated requests: standard tenant ownership check
+    if (req.user && !verifyTenantOwnership(playlist, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -107,7 +126,7 @@ const updatePlaylist = async (req, res) => {
     if (!playlist) {
       return res.status(404).json({ error: 'Playlist not found' });
     }
-    if (req.tenantId && playlist.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(playlist, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -137,7 +156,7 @@ const deletePlaylist = async (req, res) => {
     if (!playlist) {
       return res.status(404).json({ error: 'Playlist not found' });
     }
-    if (req.tenantId && playlist.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(playlist, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -175,7 +194,7 @@ const addPlaylistItem = async (req, res) => {
     if (!playlist) {
       return res.status(404).json({ error: 'Playlist not found' });
     }
-    if (req.tenantId && playlist.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(playlist, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -286,7 +305,7 @@ const reorderPlaylistItems = async (req, res) => {
 
     const playlist = await prisma.playlist.findUnique({ where: { id: req.params.id } });
     if (!playlist) return res.status(404).json({ error: 'Playlist not found' });
-    if (req.tenantId && playlist.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(playlist, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 

@@ -118,8 +118,13 @@ export function useSchedule() {
           setCurrentPlaylist(resolvedPlaylist)
           setCurrentLayout(null)
         } else if (resolvedPlaylist?.id) {
-          // Otherwise fetch from server
-          const playlist = await fetchPlaylist(resolvedPlaylist.id)
+          // Otherwise fetch from server. deviceId is required so the backend
+          // can verify cross-tenant ownership without a self-validating param.
+          if (!config?.deviceId) {
+            console.error('[Schedule] Missing deviceId — cannot fetch playlist')
+            return
+          }
+          const playlist = await fetchPlaylist(resolvedPlaylist.id, config.deviceId)
           setCurrentPlaylist(playlist)
           setCurrentLayout(null)
         }
