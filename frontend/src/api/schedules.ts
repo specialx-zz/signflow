@@ -24,5 +24,9 @@ export const scheduleApi = {
   deploy: async (id: string, force = false) => {
     const res = await apiClient.post(`/schedules/${id}/deploy${force ? '?force=true' : ''}`)
     return res.data
+  },
+  duplicate: async (id: string) => {
+    const res = await apiClient.post(`/schedules/${id}/duplicate`)
+    return res.data
   }
 }

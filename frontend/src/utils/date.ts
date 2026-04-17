@@ -5,6 +5,16 @@
 import { format as dfFormat, isValid, parseISO } from 'date-fns'
 
 /**
+ * Extract YYYY-MM-DD from an ISO datetime string without timezone conversion.
+ * Returns empty string for falsy input, slices the first 10 chars otherwise.
+ */
+export function toDateStr(dateVal: string): string {
+  if (!dateVal) return ''
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateVal)) return dateVal
+  return dateVal.slice(0, 10)
+}
+
+/**
  * Parse a value to a valid Date, or return null if invalid.
  */
 export function safeDate(value: string | Date | null | undefined): Date | null {

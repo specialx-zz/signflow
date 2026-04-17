@@ -1,208 +1,89 @@
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+/**
+ * SchedulesPage — composition root for schedule management.
+ * Delegates queries, mutations, form state, and calendar events to hooks.
+ */
+import { useState, useMemo } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import { Plus, Calendar, Pencil, Trash2, Send } from 'lucide-react'
-import { scheduleApi } from '@/api/schedules'
-import { playlistApi } from '@/api/playlists'
-import { deviceApi } from '@/api/devices'
-import { layoutApi } from '@/api/layouts'
-import { Schedule } from '@/types'
-import StatusBadge from '@/components/ui/StatusBadge'
-import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { Plus } from 'lucide-react'
+import type { Schedule } from '@/types'
 import Modal from '@/components/ui/Modal'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { useAuthStore } from '@/store/authStore'
-import toast from 'react-hot-toast'
-import { format } from 'date-fns'
-
-import ScheduleFormFields, { type ScheduleForm } from '@/components/schedules/ScheduleFormFields'
+import ScheduleFormFields from '@/components/schedules/ScheduleFormFields'
+import EditScheduleModal from '@/components/schedules/EditScheduleModal'
 import ScheduleDetailModal from '@/components/schedules/ScheduleDetailModal'
 import ScheduleConflictDialog, { type ConflictInfo } from '@/components/schedules/ScheduleConflictDialog'
 import ContentPreviewOverlay from '@/components/schedules/ContentPreviewOverlay'
+import ScheduleSidebar from '@/components/schedules/ScheduleSidebar'
 import type { ContentPreview } from '@/components/schedules/ContentThumb'
-
-const SCHEDULE_COLORS: Record<string, string> = {
-  ACTIVE: '#10b981',
-  DRAFT: '#6b7280',
-  PAUSED: '#f59e0b',
-  CANCELLED: '#ef4444'
-}
-
-/** Extract YYYY-MM-DD from an ISO datetime string without timezone conversion */
-function toDateStr(dateVal: string): string {
-  if (!dateVal) return ''
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateVal)) return dateVal
-  return dateVal.slice(0, 10)
-}
-
-const makeEmptyForm = (): ScheduleForm => ({
-  name: '',
-  type: 'CONTENT',
-  playlistId: '',
-  layoutId: '',
-  startDate: format(new Date(), 'yyyy-MM-dd'),
-  endDate: '',
-  startTime: '00:00',
-  endTime: '23:59',
-  repeatType: 'NONE',
-  deviceIds: []
-})
+import { useScheduleForm } from '@/hooks/useScheduleForm'
+import { useScheduleMutations } from '@/hooks/useScheduleMutations'
+import { useScheduleQueries } from '@/hooks/useScheduleQueries'
+import { useCalendarEvents } from '@/hooks/useCalendarEvents'
+import { validateScheduleForm } from '@/utils/scheduleValidation'
 
 export default function SchedulesPage() {
-  const queryClient = useQueryClient()
   const { user } = useAuthStore()
   const canManage = ['SUPER_ADMIN', 'TENANT_ADMIN', 'STORE_MANAGER'].includes(user?.role || '')
 
+  // Modal state
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Schedule | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Schedule | null>(null)
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null)
   const [previewContent, setPreviewContent] = useState<ContentPreview | null>(null)
-  const [sourceMode, setSourceMode] = useState<'playlist' | 'layout'>('playlist')
   const [conflictInfo, setConflictInfo] = useState<ConflictInfo | null>(null)
   const [pendingDeployId, setPendingDeployId] = useState<string | null>(null)
-  const [form, setForm] = useState<ScheduleForm>(makeEmptyForm)
 
-  // ── Queries ──────────────────────────────────────────────────────────────
-  const { data, isLoading } = useQuery({
-    queryKey: ['schedules'],
-    queryFn: () => scheduleApi.getAll({ limit: 100 })
+  // Form, queries, validation, mutations
+  const { form, setForm, sourceMode, setSourceMode, resetForm, openEdit: populateForm } = useScheduleForm()
+  const errors = useMemo(() => validateScheduleForm(form), [form])
+  const isValid = Object.keys(errors).length === 0
+
+  const { schedules, playlistItems, layoutItems, deviceItems, isLoading } = useScheduleQueries({
+    modalOpen: createModalOpen || !!editTarget,
+    detailOpen: !!selectedSchedule,
   })
+  const calendarEvents = useCalendarEvents(schedules)
 
-  const { data: playlistData } = useQuery({
-    queryKey: ['playlists-select'],
-    queryFn: () => playlistApi.getAll({ limit: 100 }),
-    enabled: createModalOpen || !!editTarget || !!selectedSchedule
-  })
-
-  const { data: deviceData } = useQuery({
-    queryKey: ['devices-select'],
-    queryFn: () => deviceApi.getAll({ limit: 100 }),
-    enabled: createModalOpen || !!editTarget
-  })
-
-  const { data: layoutData } = useQuery({
-    queryKey: ['layouts-select'],
-    queryFn: () => layoutApi.getAll({ limit: 100 }),
-    enabled: createModalOpen || !!editTarget
-  })
-
-  // ── Mutations ─────────────────────────────────────────────────────────────
-  const createMutation = useMutation({
-    mutationFn: scheduleApi.create,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['schedules'] })
-      setCreateModalOpen(false)
-      setSourceMode('playlist')
-      setForm(makeEmptyForm())
-      toast.success('스케줄이 생성되었습니다')
-    },
-    onError: () => toast.error('생성에 실패했습니다')
-  })
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
-      scheduleApi.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['schedules'] })
-      setEditTarget(null)
-      setSourceMode('playlist')
-      setForm(makeEmptyForm())
-      toast.success('스케줄이 수정되었습니다')
-    },
-    onError: () => toast.error('수정에 실패했습니다')
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => scheduleApi.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['schedules'] })
-      setDeleteTarget(null)
-      toast.success('스케줄이 삭제되었습니다')
-    },
-    onError: () => toast.error('스케줄 삭제에 실패했습니다')
-  })
-
-  const deployMutation = useMutation({
-    mutationFn: ({ id, force }: { id: string; force?: boolean }) => scheduleApi.deploy(id, force),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['schedules'] })
+  const { createMutation, updateMutation, deleteMutation, deployMutation, duplicateMutation } = useScheduleMutations({
+    onCreateSuccess: () => { setCreateModalOpen(false); resetForm() },
+    onUpdateSuccess: () => { setEditTarget(null); resetForm() },
+    onDeleteSuccess: () => setDeleteTarget(null),
+    onDeploySuccess: () => { setSelectedSchedule(null); setPendingDeployId(null); setConflictInfo(null) },
+    onDuplicateSuccess: (newSchedule) => {
       setSelectedSchedule(null)
-      setPendingDeployId(null)
-      setConflictInfo(null)
-      toast.success('스케줄이 배포되었습니다')
+      setEditTarget(newSchedule)
+      populateForm(newSchedule)
     },
-    onError: (error: any) => {
-      const data = error?.response?.data
-      if (data?.conflicts) {
-        setConflictInfo({ message: data.message, conflicts: data.conflicts })
-      } else {
-        toast.error('배포에 실패했습니다')
-      }
-    }
+    onDeployConflict: setConflictInfo,
   })
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
-  const openEdit = (schedule: Schedule) => {
-    setSelectedSchedule(null)
-    setEditTarget(schedule)
-    setSourceMode(schedule.layout ? 'layout' : 'playlist')
-    setForm({
-      name: schedule.name,
-      type: schedule.type || 'CONTENT',
-      playlistId: schedule.playlist?.id || '',
-      layoutId: schedule.layout?.id || '',
-      startDate: toDateStr(schedule.startDate),
-      endDate: schedule.endDate ? toDateStr(schedule.endDate) : '',
-      startTime: schedule.startTime || '00:00',
-      endTime: schedule.endTime || '23:59',
-      repeatType: schedule.repeatType || 'NONE',
-      deviceIds: schedule.devices?.map((sd: any) => sd.device?.id || sd.deviceId).filter(Boolean) || []
-    })
-  }
-
-  const handleDeploy = (id: string) => {
-    setPendingDeployId(id)
-    setConflictInfo(null)
-    deployMutation.mutate({ id, force: false })
-  }
-
-  // ── Derived data ──────────────────────────────────────────────────────────
-  const schedules: Schedule[] = data?.items || []
-  const playlistItems = playlistData?.items?.map((p: any) => ({ id: p.id, name: p.name })) || []
-  const layoutItems = layoutData?.items?.map((l: any) => ({ id: l.id, name: l.name, baseWidth: l.baseWidth, baseHeight: l.baseHeight })) || []
-  const deviceItems = deviceData?.items?.map((d: any) => ({ id: d.id, name: d.name })) || []
-
-  const calendarEvents = schedules.map(schedule => {
-    const startStr = toDateStr(schedule.startDate)
-    const endStr = toDateStr(schedule.endDate || schedule.startDate)
-    const exclusiveEnd = (() => {
-      try {
-        const [y, m, d] = endStr.split('-').map(Number)
-        const dt = new Date(y, m - 1, d + 1)
-        return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
-      } catch {
-        return endStr
-      }
-    })()
-    return {
-      id: schedule.id,
-      title: schedule.name,
-      start: startStr,
-      end: exclusiveEnd,
-      color: SCHEDULE_COLORS[schedule.status] || '#6b7280',
-      extendedProps: { schedule }
-    }
+  const handleEdit = (s: Schedule) => { setSelectedSchedule(null); setEditTarget(s); populateForm(s) }
+  const handleDeploy = (id: string) => { setPendingDeployId(id); setConflictInfo(null); deployMutation.mutate({ id, force: false }) }
+  const handleDuplicate = (id: string) => duplicateMutation.mutate(id)
+  const buildPayload = () => ({
+    ...form,
+    playlistId: form.playlistId || undefined,
+    layoutId: form.layoutId || undefined,
+    repeatDays: form.repeatDays.length > 0 ? form.repeatDays.join(',') : undefined,
   })
 
   if (isLoading) return <PageLoader />
 
+  const formProps = {
+    form, setForm, sourceMode, setSourceMode,
+    playlistItems, layoutItems, deviceItems,
+    showPlaylistPreview: true, onContentClick: setPreviewContent, errors,
+  } as const
+
   return (
     <div className="space-y-5">
-      {/* ── 헤더 ─────────────────────────────────────────── */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">스케줄 관리</h1>
@@ -210,23 +91,18 @@ export default function SchedulesPage() {
         </div>
         {canManage && (
           <button className="btn-primary" onClick={() => setCreateModalOpen(true)}>
-            <Plus className="w-4 h-4" />
-            스케줄 생성
+            <Plus className="w-4 h-4" /> 스케줄 생성
           </button>
         )}
       </div>
 
-      {/* ── 캘린더 + 목록 ──────────────────────────────────── */}
+      {/* Calendar + Sidebar */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-5">
         <div className="card xl:col-span-3">
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             initialView="dayGridMonth"
-            headerToolbar={{
-              left: 'prev,next today',
-              center: 'title',
-              right: 'dayGridMonth,timeGridWeek,timeGridDay'
-            }}
+            headerToolbar={{ left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' }}
             events={calendarEvents}
             eventClick={(info) => setSelectedSchedule(info.event.extendedProps.schedule)}
             locale="ko"
@@ -234,152 +110,55 @@ export default function SchedulesPage() {
             buttonText={{ today: '오늘', month: '월', week: '주', day: '일' }}
           />
         </div>
-
-        <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-gray-700">스케줄 목록</h2>
-          {schedules.length === 0 ? (
-            <div className="card text-center py-8 text-gray-400 text-sm">
-              <Calendar className="w-10 h-10 mx-auto mb-2 opacity-50" />
-              <p>스케줄이 없습니다</p>
-            </div>
-          ) : (
-            schedules.map(schedule => (
-              <div
-                key={schedule.id}
-                className="card p-4 cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => setSelectedSchedule(schedule)}
-              >
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <p className="text-sm font-medium text-gray-800 truncate flex-1">{schedule.name}</p>
-                  <StatusBadge status={schedule.status} />
-                </div>
-                <p className="text-xs text-gray-500">
-                  {toDateStr(schedule.startDate)}
-                  {schedule.startTime && ` ${schedule.startTime}`}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {schedule.layout?.name
-                    ? `레이아웃: ${schedule.layout.name}`
-                    : schedule.playlist?.name || '콘텐츠 없음'}
-                </p>
-                {canManage && (
-                  <div className="flex gap-1 mt-3">
-                    <button
-                      className="flex-1 text-xs py-1 bg-gray-50 text-gray-600 hover:bg-gray-100 rounded transition-colors"
-                      onClick={e => { e.stopPropagation(); openEdit(schedule) }}
-                    >
-                      <Pencil className="w-3 h-3 inline mr-1" />수정
-                    </button>
-                    {schedule.status !== 'ACTIVE' && (
-                      <button
-                        className="flex-1 text-xs py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded transition-colors"
-                        onClick={e => { e.stopPropagation(); handleDeploy(schedule.id) }}
-                      >
-                        배포
-                      </button>
-                    )}
-                    <button
-                      className="px-2 py-1 text-xs text-red-500 hover:bg-red-50 rounded transition-colors"
-                      onClick={e => { e.stopPropagation(); setDeleteTarget(schedule) }}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
+        <ScheduleSidebar
+          schedules={schedules} canManage={canManage}
+          onSelect={setSelectedSchedule} onEdit={handleEdit}
+          onDeploy={handleDeploy} onDelete={setDeleteTarget}
+          onDuplicate={handleDuplicate}
+        />
       </div>
 
-      {/* ── 스케줄 상세 모달 ──────────────────────────────── */}
+      {/* Detail modal */}
       <ScheduleDetailModal
-        schedule={selectedSchedule}
-        onClose={() => setSelectedSchedule(null)}
-        onEdit={openEdit}
-        onDelete={s => setDeleteTarget(s)}
-        onDeploy={handleDeploy}
-        deployIsPending={deployMutation.isPending}
-        canManage={canManage}
-        playlistItems={playlistItems}
+        schedule={selectedSchedule} onClose={() => setSelectedSchedule(null)}
+        onEdit={handleEdit} onDelete={setDeleteTarget} onDeploy={handleDeploy}
+        onDuplicate={handleDuplicate}
+        deployIsPending={deployMutation.isPending} canManage={canManage}
+        playlistItems={playlistItems} onContentClick={setPreviewContent}
+      />
+
+      {/* Create modal */}
+      <Modal
+        isOpen={createModalOpen}
+        onClose={() => { setCreateModalOpen(false); resetForm() }}
+        title="스케줄 생성" size="lg"
+        footer={<>
+          <button className="btn-secondary" onClick={() => setCreateModalOpen(false)}>취소</button>
+          <button className="btn-primary" onClick={() => createMutation.mutate(buildPayload())}
+            disabled={!isValid || createMutation.isPending}>
+            {createMutation.isPending ? '생성 중...' : '생성'}
+          </button>
+        </>}
+      >
+        <ScheduleFormFields {...formProps} />
+      </Modal>
+
+      {/* Edit modal — tabbed (basic settings + conditional playback) */}
+      <EditScheduleModal
+        editTarget={editTarget}
+        form={form} setForm={setForm}
+        sourceMode={sourceMode} setSourceMode={setSourceMode}
+        playlistItems={playlistItems} layoutItems={layoutItems} deviceItems={deviceItems}
+        errors={errors} isValid={isValid} isSaving={updateMutation.isPending}
+        onClose={() => { setEditTarget(null); resetForm() }}
+        onSave={() => editTarget && updateMutation.mutate({
+          id: editTarget.id,
+          data: { ...buildPayload(), playlistId: form.playlistId || null, layoutId: form.layoutId || null },
+        })}
         onContentClick={setPreviewContent}
       />
 
-      {/* ── 스케줄 생성 모달 ──────────────────────────────── */}
-      <Modal
-        isOpen={createModalOpen}
-        onClose={() => { setCreateModalOpen(false); setSourceMode('playlist'); setForm(makeEmptyForm()) }}
-        title="스케줄 생성"
-        size="lg"
-        footer={
-          <>
-            <button className="btn-secondary" onClick={() => setCreateModalOpen(false)}>취소</button>
-            <button
-              className="btn-primary"
-              onClick={() => createMutation.mutate({
-                ...form,
-                playlistId: form.playlistId || undefined,
-                layoutId: form.layoutId || undefined
-              })}
-              disabled={!form.name || createMutation.isPending}
-            >
-              {createMutation.isPending ? '생성 중...' : '생성'}
-            </button>
-          </>
-        }
-      >
-        <ScheduleFormFields
-          form={form}
-          setForm={setForm}
-          sourceMode={sourceMode}
-          setSourceMode={setSourceMode}
-          playlistItems={playlistItems}
-          layoutItems={layoutItems}
-          deviceItems={deviceItems}
-          showPlaylistPreview
-          onContentClick={setPreviewContent}
-        />
-      </Modal>
-
-      {/* ── 스케줄 편집 모달 ──────────────────────────────── */}
-      <Modal
-        isOpen={!!editTarget}
-        onClose={() => { setEditTarget(null); setSourceMode('playlist'); setForm(makeEmptyForm()) }}
-        title={`스케줄 수정: ${editTarget?.name || ''}`}
-        size="lg"
-        footer={
-          <>
-            <button className="btn-secondary" onClick={() => { setEditTarget(null); setForm(makeEmptyForm()) }}>취소</button>
-            <button
-              className="btn-primary"
-              onClick={() => editTarget && updateMutation.mutate({
-                id: editTarget.id,
-                data: {
-                  ...form,
-                  playlistId: form.playlistId || null,
-                  layoutId: form.layoutId || null
-                }
-              })}
-              disabled={!form.name || updateMutation.isPending}
-            >
-              {updateMutation.isPending ? '저장 중...' : '저장'}
-            </button>
-          </>
-        }
-      >
-        <ScheduleFormFields
-          form={form}
-          setForm={setForm}
-          sourceMode={sourceMode}
-          setSourceMode={setSourceMode}
-          playlistItems={playlistItems}
-          layoutItems={layoutItems}
-          deviceItems={deviceItems}
-          onContentClick={setPreviewContent}
-        />
-      </Modal>
-
-      {/* ── 시간대 충돌 경고 ──────────────────────────────── */}
+      {/* Conflict dialog */}
       <ScheduleConflictDialog
         conflictInfo={conflictInfo}
         onCancel={() => { setConflictInfo(null); setPendingDeployId(null) }}
@@ -387,21 +166,13 @@ export default function SchedulesPage() {
         isDeploying={deployMutation.isPending}
       />
 
-      {/* ── 콘텐츠 전체화면 미리보기 ──────────────────────── */}
-      <ContentPreviewOverlay
-        content={previewContent}
-        onClose={() => setPreviewContent(null)}
-      />
+      <ContentPreviewOverlay content={previewContent} onClose={() => setPreviewContent(null)} />
 
-      {/* ── 삭제 확인 다이얼로그 ──────────────────────────── */}
       <ConfirmDialog
-        isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
+        isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
-        title="스케줄 삭제"
-        message={`"${deleteTarget?.name}"을(를) 삭제하시겠습니까?`}
-        confirmLabel="삭제"
-        isLoading={deleteMutation.isPending}
+        title="스케줄 삭제" message={`"${deleteTarget?.name}"을(를) 삭제하시겠습니까?`}
+        confirmLabel="삭제" isLoading={deleteMutation.isPending}
       />
     </div>
   )

@@ -2,13 +2,14 @@
  * ScheduleDetailModal
  * Read-only detail view for a selected schedule, with playlist preview and condition editor.
  */
-import { Send, Trash2, Pencil, Film, Tag } from 'lucide-react'
+import { Send, Trash2, Pencil, Film, Tag, Copy } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import Modal from '@/components/ui/Modal'
 import StatusBadge from '@/components/ui/StatusBadge'
 import ScheduleConditionEditor from './ScheduleConditionEditor'
 import ContentThumb, { type ContentPreview } from './ContentThumb'
 import { playlistApi } from '@/api/playlists'
+import { toDateStr } from '@/utils/date'
 import type { Schedule } from '@/types'
 
 interface PlaylistOption {
@@ -22,6 +23,7 @@ interface ScheduleDetailModalProps {
   onEdit: (schedule: Schedule) => void
   onDelete: (schedule: Schedule) => void
   onDeploy: (id: string) => void
+  onDuplicate: (id: string) => void
   deployIsPending: boolean
   canManage: boolean
   playlistItems: PlaylistOption[]
@@ -32,19 +34,13 @@ const REPEAT_LABELS: Record<string, string> = {
   NONE: '없음', DAILY: '매일', WEEKLY: '매주', MONTHLY: '매월'
 }
 
-/** Extract YYYY-MM-DD from an ISO datetime string without timezone conversion */
-function toDateStr(dateVal: string): string {
-  if (!dateVal) return ''
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateVal)) return dateVal
-  return dateVal.slice(0, 10)
-}
-
 export default function ScheduleDetailModal({
   schedule,
   onClose,
   onEdit,
   onDelete,
   onDeploy,
+  onDuplicate,
   deployIsPending,
   canManage,
   playlistItems,
@@ -64,25 +60,34 @@ export default function ScheduleDetailModal({
       size="lg"
       footer={
         canManage && schedule ? (
-          <div className="flex gap-2 w-full">
+          // Layout: destructive action (삭제) is left-aligned, primary actions (수정/배포)
+          // are right-aligned. All buttons use natural width — do NOT add `flex-1` here:
+          // when [배포] is hidden for ACTIVE schedules, a lone `flex-1` on [수정]
+          // stretches it across the entire footer (regression fixed 2026-04).
+          <div className="flex gap-2 w-full justify-between">
             <button
               className="btn-danger"
               onClick={() => { onDelete(schedule); onClose() }}
             >
               <Trash2 className="w-4 h-4" /> 삭제
             </button>
-            <button className="btn-secondary flex-1" onClick={() => onEdit(schedule)}>
-              <Pencil className="w-4 h-4" /> 수정
-            </button>
-            {schedule.status !== 'ACTIVE' && (
-              <button
-                className="btn-primary flex-1"
-                onClick={() => onDeploy(schedule.id)}
-                disabled={deployIsPending}
-              >
-                <Send className="w-4 h-4" /> 배포
+            <div className="flex gap-2">
+              <button className="btn-secondary" onClick={() => onDuplicate(schedule.id)}>
+                <Copy className="w-4 h-4" /> 복제
               </button>
-            )}
+              <button className="btn-secondary" onClick={() => onEdit(schedule)}>
+                <Pencil className="w-4 h-4" /> 수정
+              </button>
+              {schedule.status !== 'ACTIVE' && (
+                <button
+                  className="btn-primary"
+                  onClick={() => onDeploy(schedule.id)}
+                  disabled={deployIsPending}
+                >
+                  <Send className="w-4 h-4" /> 배포
+                </button>
+              )}
+            </div>
           </div>
         ) : undefined
       }
@@ -183,6 +188,9 @@ export default function ScheduleDetailModal({
                 scheduleId={schedule.id}
                 playlists={playlistItems}
                 readOnly={!canManage}
+                deviceCount={schedule.devices?.length ?? 0}
+                defaultPlaylistId={schedule.playlist?.id ?? null}
+                defaultPlaylistName={schedule.playlist?.name ?? null}
               />
             </div>
           </div>
