@@ -1,5 +1,5 @@
 /**
- * SignFlow DB 정합성 검사 스크립트
+ * VueSign DB 정합성 검사 스크립트
  * 실행: node test_db_integrity.js
  */
 const { PrismaClient } = require('@prisma/client');
@@ -26,7 +26,7 @@ function section(name) {
 }
 
 async function run() {
-  console.log('\n🔍 SignFlow DB 정합성 검사 시작\n');
+  console.log('\n🔍 VueSign DB 정합성 검사 시작\n');
 
   // ══ 1. AuditLog NULL 검사 ══════════════════════════════
   section('1. AuditLog tenantId NULL 검사');

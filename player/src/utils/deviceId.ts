@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 
-const DEVICE_ID_KEY = 'signflow_device_id'
+const DEVICE_ID_KEY = 'vuesign_device_id'
 
 /**
  * Returns a persistent device ID stored in localStorage.

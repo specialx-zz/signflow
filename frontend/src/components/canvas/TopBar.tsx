@@ -1,36 +1,44 @@
 /**
- * V4 Phase 12b: 캔버스 에디터 상단 바
- * — 저장/미리보기/Undo/Redo/버전 히스토리/템플릿 저장
+ * VueSign Phase W1: Canvas v2.0 TopBar
+ *
+ * 제거:
+ *   - 미리보기 (플레이어에서 확인)
+ *
+ * 유지:
+ *   - 제목 편집 + dirty 표시
+ *   - Undo/Redo
+ *   - 크기 프리셋 (가로/세로 FHD)
+ *   - Zoom
+ *   - 버전 히스토리 / 템플릿 저장
+ *   - 저장 버튼
  */
 import {
-  ArrowLeft, Save, Eye, Undo2, Redo2, ZoomIn, ZoomOut,
-  Monitor, Smartphone, History, BookmarkPlus
+  ArrowLeft, Save, Undo2, Redo2, ZoomIn, ZoomOut,
+  Monitor, Smartphone, History, BookmarkPlus,
 } from 'lucide-react'
 import { useCanvasStore } from '@/store/canvasStore'
 import { useNavigate } from 'react-router-dom'
 
 interface TopBarProps {
   onSave: () => void
-  onPreview: () => void
   isSaving: boolean
   onToggleVersionHistory?: () => void
   onSaveAsTemplate?: () => void
 }
 
-export default function TopBar({ onSave, onPreview, isSaving, onToggleVersionHistory, onSaveAsTemplate }: TopBarProps) {
+export default function TopBar({ onSave, isSaving, onToggleVersionHistory, onSaveAsTemplate }: TopBarProps) {
   const navigate = useNavigate()
   const {
     contentName, setContentName, isDirty,
     undo, redo, canUndo, canRedo,
     zoom, setZoom,
-    canvasData, setCanvasSize
+    canvasData, setCanvasSize,
   } = useCanvasStore()
 
   const { width, height } = canvasData.canvas
 
   return (
     <div className="h-12 bg-white border-b border-gray-200 flex items-center px-3 gap-2 flex-shrink-0">
-      {/* Back */}
       <button
         onClick={() => navigate('/canvas')}
         className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg"
@@ -39,7 +47,6 @@ export default function TopBar({ onSave, onPreview, isSaving, onToggleVersionHis
         <ArrowLeft className="w-5 h-5" />
       </button>
 
-      {/* Title */}
       <input
         type="text"
         value={contentName}
@@ -50,7 +57,6 @@ export default function TopBar({ onSave, onPreview, isSaving, onToggleVersionHis
 
       <div className="h-5 w-px bg-gray-200 mx-1" />
 
-      {/* Undo/Redo */}
       <button
         onClick={undo}
         disabled={!canUndo()}
@@ -70,7 +76,6 @@ export default function TopBar({ onSave, onPreview, isSaving, onToggleVersionHis
 
       <div className="h-5 w-px bg-gray-200 mx-1" />
 
-      {/* Canvas Size Presets */}
       <div className="flex items-center gap-1">
         <button
           onClick={() => setCanvasSize(1920, 1080)}
@@ -92,7 +97,6 @@ export default function TopBar({ onSave, onPreview, isSaving, onToggleVersionHis
 
       <div className="flex-1" />
 
-      {/* Zoom */}
       <div className="flex items-center gap-1">
         <button onClick={() => setZoom(zoom - 0.1)} className="p-1 text-gray-400 hover:text-gray-600">
           <ZoomOut className="w-4 h-4" />
@@ -105,7 +109,6 @@ export default function TopBar({ onSave, onPreview, isSaving, onToggleVersionHis
 
       <div className="h-5 w-px bg-gray-200 mx-1" />
 
-      {/* Version History */}
       {onToggleVersionHistory && (
         <button
           onClick={onToggleVersionHistory}
@@ -116,7 +119,6 @@ export default function TopBar({ onSave, onPreview, isSaving, onToggleVersionHis
         </button>
       )}
 
-      {/* Save as Template */}
       {onSaveAsTemplate && (
         <button
           onClick={onSaveAsTemplate}
@@ -127,14 +129,6 @@ export default function TopBar({ onSave, onPreview, isSaving, onToggleVersionHis
         </button>
       )}
 
-      {/* Actions */}
-      <button
-        onClick={onPreview}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
-      >
-        <Eye className="w-4 h-4" />
-        미리보기
-      </button>
       <button
         onClick={onSave}
         disabled={isSaving}

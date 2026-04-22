@@ -1,5 +1,5 @@
 /**
- * SignFlow 심층 버그 탐지 테스트
+ * VueSign 심층 버그 탐지 테스트
  * 비즈니스 로직, 엣지케이스, 보안 격리, 플레이어 API 등
  * 실행: node test_deep.js
  */
@@ -52,10 +52,10 @@ function section(name) {
 }
 
 async function run() {
-  console.log('\n🔬 SignFlow 심층 버그 탐지 테스트\n');
+  console.log('\n🔬 VueSign 심층 버그 탐지 테스트\n');
 
   // 로그인
-  const login = await req('POST', '/api/auth/login', { email: 'admin@signflow.com', password: 'admin123' }, false);
+  const login = await req('POST', '/api/auth/login', { email: 'admin@vuesign.com', password: 'admin123' }, false);
   TOKEN = login.body?.token || '';
   const TENANT_ID = login.body?.user?.tenantId || '';
   ok('사전 로그인', !!TOKEN);

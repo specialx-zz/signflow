@@ -65,7 +65,7 @@ export function BrowserNotSupported() {
         </div>
 
         <h1 style={{ fontSize: '22px', fontWeight: '700', margin: '0 0 12px', color: '#fff' }}>
-          SignFlow Player
+          VueSign Player
         </h1>
         <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.5)', margin: '0 0 8px', lineHeight: '1.6' }}>
           이 앱은 <strong style={{ color: 'rgba(255,255,255,0.8)' }}>Electron 데스크탑 앱</strong>으로만 실행할 수 있습니다.

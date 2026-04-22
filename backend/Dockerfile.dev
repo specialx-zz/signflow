@@ -1,0 +1,19 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# package.json 먼저 복사 (캐시 활용)
+COPY package*.json ./
+
+# 개발 의존성 포함 설치
+RUN npm ci
+
+# Prisma 스키마 복사 및 클라이언트 생성
+COPY prisma ./prisma/
+RUN npx prisma generate
+
+# 소스는 볼륨으로 마운트되므로 여기서 복사하지 않음
+EXPOSE 3001
+
+# nodemon으로 hot reload
+CMD ["npx", "nodemon", "src/app.js"]

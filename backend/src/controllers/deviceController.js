@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const { verifyTenantOwnership } = require('../middleware/tenant');
 const { v4: uuidv4 } = require('uuid');
 
 const getDevices = async (req, res) => {
@@ -68,7 +69,7 @@ const getDeviceById = async (req, res) => {
       return res.status(404).json({ error: 'Device not found' });
     }
 
-    if (req.tenantId && device.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(device, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -125,7 +126,7 @@ const updateDevice = async (req, res) => {
     if (!device) {
       return res.status(404).json({ error: 'Device not found' });
     }
-    if (req.tenantId && device.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(device, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -161,7 +162,7 @@ const deleteDevice = async (req, res) => {
     if (!device) {
       return res.status(404).json({ error: 'Device not found' });
     }
-    if (req.tenantId && device.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(device, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -195,7 +196,7 @@ const getDeviceStatus = async (req, res) => {
     if (!device) {
       return res.status(404).json({ error: 'Device not found' });
     }
-    if (req.tenantId && device.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(device, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -213,7 +214,7 @@ const controlDevice = async (req, res) => {
     if (!device) {
       return res.status(404).json({ error: 'Device not found' });
     }
-    if (req.tenantId && device.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(device, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 

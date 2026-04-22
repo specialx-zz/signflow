@@ -1,6 +1,6 @@
 /**
  * create-icon.js
- * SignFlow Player 아이콘 생성 스크립트
+ * VueSign Player 아이콘 생성 스크립트
  * 순수 Node.js Buffer로 ICO 파일 생성 (외부 의존성 없음)
  */
 
@@ -11,7 +11,7 @@ const publicDir = path.join(__dirname, '../public')
 fs.mkdirSync(publicDir, { recursive: true })
 
 /**
- * 32x32 BGRA 픽셀 배열 생성 (SignFlow 로고 스타일: 네이비 배경 + 흰 S)
+ * 32x32 BGRA 픽셀 배열 생성 (VueSign 로고 스타일: 네이비 배경 + 흰 S)
  */
 function createPixels(size) {
   const pixels = Buffer.alloc(size * size * 4)
@@ -32,16 +32,14 @@ function createPixels(size) {
         const nx = (x / size) * 10 - 5  // -5 ~ 5
         const ny = (y / size) * 10 - 5  // -5 ~ 5
 
-        // S 자 형태: 상단 가로줄, 중단 가로줄, 하단 가로줄 + 연결
-        const isS = (
-          (ny >= -4 && ny <= -2.5 && nx >= -2 && nx <= 2) ||  // 상단 가로
-          (ny >= -4 && ny <= 0 && nx >= -2 && nx <= -0.5) ||  // 상단 좌측 세로
-          (ny >= -1.5 && ny <= 0.5 && nx >= -2 && nx <= 2) || // 중단 가로
-          (ny >= 0 && ny <= 4 && nx >= 0.5 && nx <= 2) ||     // 하단 우측 세로
-          (ny >= 2.5 && ny <= 4 && nx >= -2 && nx <= 2)       // 하단 가로
+        // V 자 형태: 좌측 대각선(\) + 우측 대각선(/) — 하단 꼭짓점(0, 3)에서 만남
+        const slope = 2 / 7  // (-2,-4) → (0,3) 기울기
+        const isV = (
+          (Math.abs(nx - (-2 + (ny + 4) * slope)) <= 0.65 && ny >= -4 && ny <= 3) ||  // 좌측 대각선
+          (Math.abs(nx - (2 - (ny + 4) * slope)) <= 0.65 && ny >= -4 && ny <= 3)      // 우측 대각선
         )
 
-        if (isS) {
+        if (isV) {
           // 흰색 (BGRA)
           pixels[idx + 0] = 255
           pixels[idx + 1] = 255
@@ -192,9 +190,23 @@ function createMinimalPNG(size) {
       const cx = size / 2, cy = size / 2
       const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2)
       if (dist <= size / 2 - 1) {
-        scanlines[px + 0] = 0x1E  // R
-        scanlines[px + 1] = 0x3A  // G
-        scanlines[px + 2] = 0x5F  // B
+        // V 글자 판정
+        const nx = (x / size) * 10 - 5
+        const ny = (y / size) * 10 - 5
+        const slope = 2 / 7
+        const isV = (
+          (Math.abs(nx - (-2 + (ny + 4) * slope)) <= 0.65 && ny >= -4 && ny <= 3) ||
+          (Math.abs(nx - (2 - (ny + 4) * slope)) <= 0.65 && ny >= -4 && ny <= 3)
+        )
+        if (isV) {
+          scanlines[px + 0] = 255  // R (흰색)
+          scanlines[px + 1] = 255  // G
+          scanlines[px + 2] = 255  // B
+        } else {
+          scanlines[px + 0] = 0x1E  // R (네이비)
+          scanlines[px + 1] = 0x3A  // G
+          scanlines[px + 2] = 0x5F  // B
+        }
       } else {
         scanlines[px + 0] = 0x10
         scanlines[px + 1] = 0x10

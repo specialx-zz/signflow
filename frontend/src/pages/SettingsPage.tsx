@@ -34,7 +34,7 @@ export default function SettingsPage() {
           </div>
           <dl className="space-y-4">
             {[
-              { label: '시스템 이름', value: settings?.server?.name || 'SignFlow Clone' },
+              { label: '시스템 이름', value: settings?.server?.name || 'VueSign Clone' },
               { label: '버전', value: settings?.server?.version || '1.0.0' },
               { label: '시간대', value: settings?.server?.timezone || 'Asia/Seoul' },
               { label: '언어', value: settings?.server?.language === 'ko' ? '한국어' : 'English' },
@@ -120,7 +120,7 @@ export default function SettingsPage() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: '플랫폼', value: 'SignFlow Clone', sub: 'Digital Signage Management System' },
+            { label: '플랫폼', value: 'VueSign Clone', sub: 'Digital Signage Management System' },
             { label: '기술 스택', value: 'React + Node.js + SQLite', sub: 'TypeScript / Express / Prisma' },
             { label: '실시간 통신', value: 'Socket.IO', sub: 'WebSocket 기반 양방향 통신' }
           ].map(item => (

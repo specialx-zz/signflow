@@ -1,13 +1,14 @@
 {
-  "name": "signflow-backend",
+  "name": "vuesign-backend",
   "version": "1.0.0",
-  "description": "SignFlow Clone Backend",
+  "description": "VueSign Clone Backend",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
     "db:push": "prisma db push",
     "db:seed": "node src/utils/seed.js",
+    "db:seed:weather": "node scripts/seed-weather-locations.js",
     "db:studio": "prisma studio",
     "test": "jest --runInBand",
     "test:watch": "jest --runInBand --watch"

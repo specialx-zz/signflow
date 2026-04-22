@@ -4,11 +4,11 @@ const options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'SignFlow API',
+      title: 'VueSign API',
       version: '2.0.0',
-      description: 'SignFlow 디지털 사이니지 SaaS 플랫폼 API',
+      description: 'VueSign 디지털 사이니지 SaaS 플랫폼 API',
       contact: {
-        name: 'SignFlow Support',
+        name: 'VueSign Support',
       },
     },
     servers: [

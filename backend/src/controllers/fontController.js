@@ -3,6 +3,7 @@
  */
 
 const prisma = require('../utils/prisma');
+const { verifyTenantOwnership } = require('../middleware/tenant');
 const { v4: uuidv4 } = require('uuid');
 
 // ─── 커스텀 폰트 CRUD ────────────────────────────
@@ -76,7 +77,7 @@ const deleteFont = async (req, res) => {
   try {
     const font = await prisma.customFont.findUnique({ where: { id: req.params.id } });
     if (!font) return res.status(404).json({ error: '폰트를 찾을 수 없습니다' });
-    if (font.tenantId !== req.tenantId) return res.status(403).json({ error: '권한이 없습니다' });
+    if (!verifyTenantOwnership(font, req)) return res.status(403).json({ error: '권한이 없습니다' });
 
     await prisma.customFont.update({
       where: { id: req.params.id },

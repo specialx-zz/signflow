@@ -1,4 +1,4 @@
-# SignFlow V2 인프라 비용 시뮬레이션
+# VueSign V2 인프라 비용 시뮬레이션
 
 > 작성일: 2026-03-27
 > 기준: AWS 서울 리전 (ap-northeast-2) 기준 단가
@@ -410,14 +410,14 @@ app.post('/api/content/upload', upload.single('file'), async (req, res) => {
   const key = `${req.tenantId}/${req.file.filename}`
 
   await s3.send(new PutObjectCommand({
-    Bucket: 'signflow-content',
+    Bucket: 'vuesign-content',
     Key: key,
     Body: fs.createReadStream(req.file.path),
     ContentType: req.file.mimetype,
   }))
 
   // 공개 URL 또는 Signed URL
-  const fileUrl = `https://content.signflow.co.kr/${key}`
+  const fileUrl = `https://content.vuesign.co.kr/${key}`
   // DB에 fileUrl 저장
 
   // 로컬 임시 파일 삭제

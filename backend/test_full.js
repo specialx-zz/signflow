@@ -1,5 +1,5 @@
 /**
- * SignFlow 전체 통합 테스트 (Supertest 기반)
+ * VueSign 전체 통합 테스트 (Supertest 기반)
  * 실행: node test_full.js
  */
 const http = require('http');
@@ -64,7 +64,7 @@ function section(name) {
 
 // ── 테스트 ──────────────────────────────────────────────
 async function run() {
-  console.log('\n🚀 SignFlow 전체 통합 테스트 시작\n');
+  console.log('\n🚀 VueSign 전체 통합 테스트 시작\n');
 
   // ══ 1. 헬스체크 ══════════════════════════════════════
   section('1. 서버 헬스체크');
@@ -79,7 +79,7 @@ async function run() {
   section('2. 인증 테스트');
 
   // 잘못된 비밀번호
-  const badLogin = await req('POST', '/api/auth/login', { email: 'admin@signflow.com', password: 'WRONG' }, false);
+  const badLogin = await req('POST', '/api/auth/login', { email: 'admin@vuesign.com', password: 'WRONG' }, false);
   ok('잘못된 비밀번호 → 401', badLogin.status === 401, `got ${badLogin.status}`);
 
   // 없는 이메일
@@ -97,7 +97,7 @@ async function run() {
   ok('토큰 없음 → 401', noTok.status === 401, `got ${noTok.status}`);
 
   // 정상 로그인
-  const login = await req('POST', '/api/auth/login', { email: 'admin@signflow.com', password: 'admin123' }, false);
+  const login = await req('POST', '/api/auth/login', { email: 'admin@vuesign.com', password: 'admin123' }, false);
   ok('정상 로그인 → 200', login.status === 200, `got ${login.status}`);
   ok('로그인 → JWT 토큰 발급', !!login.body?.token, 'token missing');
   ok('로그인 → role 포함', !!login.body?.user?.role, JSON.stringify(login.body?.user));

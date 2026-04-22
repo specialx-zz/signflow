@@ -22,7 +22,7 @@ function validateEnv() {
     if (secret.length < 32) {
       warnings.push('JWT_SECRET should be at least 32 characters for security');
     }
-    if (secret.includes('signflow-super-secret') || secret.includes('change-me')) {
+    if (secret.includes('vuesign-super-secret') || secret.includes('change-me')) {
       if (process.env.NODE_ENV === 'production') {
         errors.push('JWT_SECRET must be changed from default value in production');
       } else {
@@ -49,6 +49,14 @@ function validateEnv() {
   if (configuredR2.length > 0 && configuredR2.length < r2Vars.length) {
     const missing = r2Vars.filter(v => !process.env[v]);
     warnings.push(`R2 storage partially configured. Missing: ${missing.join(', ')}`);
+  }
+
+  // Weather API keys (VueSign Phase W1) — 선택적이지만 미설정 시 날씨 위젯 동작 불가
+  if (!process.env.KMA_SERVICE_KEY) {
+    warnings.push('KMA_SERVICE_KEY is not set — 기상청 날씨 위젯(현재/주간)이 동작하지 않습니다');
+  }
+  if (!process.env.AIRKOREA_SERVICE_KEY) {
+    warnings.push('AIRKOREA_SERVICE_KEY is not set — 에어코리아 미세먼지 위젯이 동작하지 않습니다');
   }
 
   return { errors, warnings };

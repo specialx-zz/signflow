@@ -10,7 +10,7 @@ const { app } = require('electron');
 const path = require('path');
 const fs = require('fs-extra');
 
-const APP_NAME = 'SignFlowPlayer';
+const APP_NAME = 'VueSignPlayer';
 
 /**
  * Enable auto-start on boot
@@ -28,16 +28,16 @@ function enableAutoStart() {
     // Linux: create .desktop file
     const desktopEntry = `[Desktop Entry]
 Type=Application
-Name=SignFlow Player
+Name=VueSign Player
 Exec=${process.execPath} --autostart
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
-Comment=SignFlow Digital Signage Player
+Comment=VueSign Digital Signage Player
 `;
     const autostartDir = path.join(app.getPath('home'), '.config', 'autostart');
     fs.ensureDirSync(autostartDir);
-    fs.writeFileSync(path.join(autostartDir, 'signflow-player.desktop'), desktopEntry);
+    fs.writeFileSync(path.join(autostartDir, 'vuesign-player.desktop'), desktopEntry);
     console.log('[AutoStart] Enabled (Linux .desktop)');
   }
 }
@@ -53,7 +53,7 @@ function disableAutoStart() {
     });
     console.log('[AutoStart] Disabled (Windows)');
   } else if (process.platform === 'linux') {
-    const desktopFile = path.join(app.getPath('home'), '.config', 'autostart', 'signflow-player.desktop');
+    const desktopFile = path.join(app.getPath('home'), '.config', 'autostart', 'vuesign-player.desktop');
     fs.removeSync(desktopFile);
     console.log('[AutoStart] Disabled (Linux)');
   }
@@ -67,7 +67,7 @@ function isAutoStartEnabled() {
     const settings = app.getLoginItemSettings({ name: APP_NAME });
     return settings.openAtLogin;
   } else if (process.platform === 'linux') {
-    const desktopFile = path.join(app.getPath('home'), '.config', 'autostart', 'signflow-player.desktop');
+    const desktopFile = path.join(app.getPath('home'), '.config', 'autostart', 'vuesign-player.desktop');
     return fs.pathExistsSync(desktopFile);
   }
   return false;

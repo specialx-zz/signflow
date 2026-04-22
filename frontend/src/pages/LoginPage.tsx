@@ -40,7 +40,7 @@ export default function LoginPage() {
               <Tv2 className="w-7 h-7 text-white" />
             </div>
             <div>
-              <div className="text-white text-2xl font-bold">SignFlow</div>
+              <div className="text-white text-2xl font-bold">VueSign</div>
               <div className="text-blue-400 text-sm">Digital Signage Management System</div>
             </div>
           </div>
@@ -78,7 +78,7 @@ export default function LoginPage() {
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
               <Tv2 className="w-6 h-6 text-white" />
             </div>
-            <div className="text-white text-xl font-bold">SignFlow</div>
+            <div className="text-white text-xl font-bold">VueSign</div>
           </div>
 
           <div className="bg-white rounded-2xl shadow-2xl p-8">
@@ -138,11 +138,11 @@ export default function LoginPage() {
               <p className="text-xs text-gray-400 text-center mb-3">테스트 계정 (개발 모드)</p>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { label: '최고관리자', email: 'superadmin@signflow.com', password: 'superadmin123', bg: 'bg-red-50 hover:bg-red-100', color: 'text-red-600', badge: 'bg-red-100 text-red-700' },
-                  { label: '업체관리자', email: 'admin@signflow.com', password: 'admin123', bg: 'bg-blue-50 hover:bg-blue-100', color: 'text-blue-600', badge: 'bg-blue-100 text-blue-700' },
-                  { label: '매장관리자', email: 'manager@signflow.com', password: 'manager123', bg: 'bg-green-50 hover:bg-green-100', color: 'text-green-600', badge: 'bg-green-100 text-green-700' },
-                  { label: '사용자', email: 'user@signflow.com', password: 'user123', bg: 'bg-amber-50 hover:bg-amber-100', color: 'text-amber-600', badge: 'bg-amber-100 text-amber-700' },
-                  { label: '뷰어', email: 'viewer@signflow.com', password: 'viewer123', bg: 'bg-purple-50 hover:bg-purple-100', color: 'text-purple-600', badge: 'bg-purple-100 text-purple-700' },
+                  { label: '최고관리자', email: 'superadmin@vuesign.com', password: 'superadmin123', bg: 'bg-red-50 hover:bg-red-100', color: 'text-red-600', badge: 'bg-red-100 text-red-700' },
+                  { label: '업체관리자', email: 'admin@vuesign.com', password: 'admin123', bg: 'bg-blue-50 hover:bg-blue-100', color: 'text-blue-600', badge: 'bg-blue-100 text-blue-700' },
+                  { label: '매장관리자', email: 'manager@vuesign.com', password: 'manager123', bg: 'bg-green-50 hover:bg-green-100', color: 'text-green-600', badge: 'bg-green-100 text-green-700' },
+                  { label: '사용자', email: 'user@vuesign.com', password: 'user123', bg: 'bg-amber-50 hover:bg-amber-100', color: 'text-amber-600', badge: 'bg-amber-100 text-amber-700' },
+                  { label: '뷰어', email: 'viewer@vuesign.com', password: 'viewer123', bg: 'bg-purple-50 hover:bg-purple-100', color: 'text-purple-600', badge: 'bg-purple-100 text-purple-700' },
                 ].map((account) => (
                   <button
                     key={account.email}

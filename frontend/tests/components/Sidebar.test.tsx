@@ -24,11 +24,11 @@ describe('Sidebar', () => {
     vi.clearAllMocks()
   })
 
-  it('renders the SignFlow branding', () => {
+  it('renders the VueSign branding', () => {
     mockUseAuthStore.mockReturnValue(mockAuthStore(createMockUser({ role: 'USER' })))
     render(<Sidebar />)
 
-    expect(screen.getByText('SignFlow')).toBeInTheDocument()
+    expect(screen.getByText('VueSign')).toBeInTheDocument()
     expect(screen.getByText('Digital Signage')).toBeInTheDocument()
   })
 

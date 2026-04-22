@@ -1,10 +1,11 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Rnd } from 'react-rnd'
 import {
-  ArrowLeft, Plus, Trash2, Save, Layers, Image, Video, Code, Music,
-  FileText, Eye, EyeOff, ChevronUp, ChevronDown, Copy, Monitor
+  ArrowLeft, Plus, Trash2, Save, Layers, Image, Code,
+  FileText, Eye, EyeOff, ChevronUp, ChevronDown, Copy, Monitor,
+  ZoomIn, ZoomOut, Maximize2,
 } from 'lucide-react'
 import { layoutApi } from '@/api/layouts'
 import { playlistApi } from '@/api/playlists'
@@ -24,7 +25,14 @@ const SOURCE_TYPES = [
   { value: 'HTML',     label: 'HTML 코드',    icon: Code,    desc: 'HTML을 직접 렌더링' },
 ]
 
-const CANVAS_WIDTH = 800 // fixed px for editor canvas
+// VueSign Phase W1: 캔버스 크기는 동적으로 조절 가능해졌다.
+//   - canvasZoom 0.5 ~ 2.5 범위
+//   - BASE_CANVAS_WIDTH 기준으로 실제 픽셀 폭을 계산
+//   - "화면에 맞춤" 버튼은 현재 스크롤 영역 너비에 맞게 자동 조정
+const BASE_CANVAS_WIDTH = 900
+const MIN_ZOOM = 0.4
+const MAX_ZOOM = 3.0
+const ZOOM_STEP = 0.1
 
 interface Zone {
   id: string
@@ -62,10 +70,13 @@ export default function LayoutEditorPage() {
   const queryClient = useQueryClient()
   const canvasRef = useRef<HTMLDivElement>(null)
 
+  const canvasScrollRef = useRef<HTMLDivElement>(null)
+
   const [zones, setZones] = useState<Zone[]>([])
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
   const [showGrid, setShowGrid] = useState(true)
+  const [canvasZoom, setCanvasZoom] = useState(1.0)
 
   const { data: layout, isLoading } = useQuery<LayoutData>({
     queryKey: ['layout', id],
@@ -103,26 +114,93 @@ export default function LayoutEditorPage() {
     onError: () => toast.error('저장에 실패했습니다'),
   })
 
-  // Canvas size in px based on aspect ratio
-  const canvasHeight = layout
-    ? Math.round(CANVAS_WIDTH * (layout.baseHeight / layout.baseWidth))
-    : Math.round(CANVAS_WIDTH * (9 / 16))
+  // Canvas size in px based on aspect ratio and current zoom
+  const canvasWidth = useMemo(
+    () => Math.round(BASE_CANVAS_WIDTH * canvasZoom),
+    [canvasZoom]
+  )
+  const canvasHeight = useMemo(
+    () =>
+      layout
+        ? Math.round(canvasWidth * (layout.baseHeight / layout.baseWidth))
+        : Math.round(canvasWidth * (9 / 16)),
+    [canvasWidth, layout]
+  )
 
   // Convert zone % to canvas px
-  const toCanvas = (zone: Zone) => ({
-    x: (zone.x / 100) * CANVAS_WIDTH,
-    y: (zone.y / 100) * canvasHeight,
-    width: (zone.width / 100) * CANVAS_WIDTH,
-    height: (zone.height / 100) * canvasHeight,
-  })
+  const toCanvas = useCallback(
+    (zone: Zone) => ({
+      x: (zone.x / 100) * canvasWidth,
+      y: (zone.y / 100) * canvasHeight,
+      width: (zone.width / 100) * canvasWidth,
+      height: (zone.height / 100) * canvasHeight,
+    }),
+    [canvasWidth, canvasHeight]
+  )
 
   // Convert canvas px back to %
-  const toPercent = (x: number, y: number, w: number, h: number) => ({
-    x: Math.max(0, Math.min(100, parseFloat(((x / CANVAS_WIDTH) * 100).toFixed(2)))),
-    y: Math.max(0, Math.min(100, parseFloat(((y / canvasHeight) * 100).toFixed(2)))),
-    width: Math.max(5, Math.min(100, parseFloat(((w / CANVAS_WIDTH) * 100).toFixed(2)))),
-    height: Math.max(5, Math.min(100, parseFloat(((h / canvasHeight) * 100).toFixed(2)))),
-  })
+  const toPercent = useCallback(
+    (x: number, y: number, w: number, h: number) => ({
+      x: Math.max(0, Math.min(100, parseFloat(((x / canvasWidth) * 100).toFixed(2)))),
+      y: Math.max(0, Math.min(100, parseFloat(((y / canvasHeight) * 100).toFixed(2)))),
+      width: Math.max(5, Math.min(100, parseFloat(((w / canvasWidth) * 100).toFixed(2)))),
+      height: Math.max(5, Math.min(100, parseFloat(((h / canvasHeight) * 100).toFixed(2)))),
+    }),
+    [canvasWidth, canvasHeight]
+  )
+
+  // Zoom controls
+  const zoomIn = useCallback(
+    () => setCanvasZoom(z => Math.min(MAX_ZOOM, parseFloat((z + ZOOM_STEP).toFixed(2)))),
+    []
+  )
+  const zoomOut = useCallback(
+    () => setCanvasZoom(z => Math.max(MIN_ZOOM, parseFloat((z - ZOOM_STEP).toFixed(2)))),
+    []
+  )
+  const zoomFit = useCallback(() => {
+    if (!canvasScrollRef.current || !layout) return
+    const availableWidth = canvasScrollRef.current.clientWidth - 64 // padding 32*2
+    const availableHeight = canvasScrollRef.current.clientHeight - 64
+    const ratio = layout.baseHeight / layout.baseWidth
+    // 너비/높이 모두에 맞는 최대 zoom 선택
+    const widthZoom = availableWidth / BASE_CANVAS_WIDTH
+    const heightZoom = availableHeight / (BASE_CANVAS_WIDTH * ratio)
+    const bestZoom = Math.max(
+      MIN_ZOOM,
+      Math.min(MAX_ZOOM, Math.min(widthZoom, heightZoom))
+    )
+    setCanvasZoom(parseFloat(bestZoom.toFixed(2)))
+  }, [layout])
+
+  // 레이아웃 로드 시 한 번 자동으로 화면에 맞춤
+  useEffect(() => {
+    if (layout) {
+      // 다음 프레임에 실행 (DOM 크기 측정용)
+      const t = setTimeout(zoomFit, 0)
+      return () => clearTimeout(t)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layout?.id])
+
+  // 키보드 단축키: Ctrl+=/- 으로 줌, Ctrl+0 으로 맞춤
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return
+      if (e.key === '=' || e.key === '+') {
+        e.preventDefault()
+        zoomIn()
+      } else if (e.key === '-') {
+        e.preventDefault()
+        zoomOut()
+      } else if (e.key === '0') {
+        e.preventDefault()
+        zoomFit()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [zoomIn, zoomOut, zoomFit])
 
   const addZone = useCallback(() => {
     const newZone: Zone = {
@@ -202,6 +280,37 @@ export default function LayoutEditorPage() {
           {showGrid ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           그리드
         </button>
+
+        {/* VueSign Phase W1: 캔버스 줌 컨트롤 */}
+        <div className="flex items-center gap-0.5 border rounded-lg overflow-hidden">
+          <button
+            onClick={zoomOut}
+            disabled={canvasZoom <= MIN_ZOOM}
+            className="p-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-30"
+            title="축소 (Ctrl+-)"
+          >
+            <ZoomOut className="w-4 h-4" />
+          </button>
+          <span className="px-2 text-xs text-gray-600 w-12 text-center tabular-nums">
+            {Math.round(canvasZoom * 100)}%
+          </span>
+          <button
+            onClick={zoomIn}
+            disabled={canvasZoom >= MAX_ZOOM}
+            className="p-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-30"
+            title="확대 (Ctrl++)"
+          >
+            <ZoomIn className="w-4 h-4" />
+          </button>
+          <button
+            onClick={zoomFit}
+            className="p-1.5 text-gray-500 hover:bg-gray-100 border-l"
+            title="화면에 맞춤 (Ctrl+0)"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
+        </div>
+
         <button
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
           onClick={() => addZone()}
@@ -223,12 +332,15 @@ export default function LayoutEditorPage() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* ─── Canvas ─────────────────────────────────────── */}
-        <div className="flex-1 overflow-auto flex items-center justify-center p-8 bg-gray-200">
+        <div
+          ref={canvasScrollRef}
+          className="flex-1 overflow-auto flex items-center justify-center p-8 bg-gray-200"
+        >
           <div
             ref={canvasRef}
-            className="relative bg-black shadow-2xl"
+            className="relative bg-black shadow-2xl flex-shrink-0"
             style={{
-              width: CANVAS_WIDTH,
+              width: canvasWidth,
               height: canvasHeight,
               backgroundImage: showGrid
                 ? 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)'

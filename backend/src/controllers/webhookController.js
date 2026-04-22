@@ -105,7 +105,7 @@ const testWebhook = async (req, res) => {
 
     const WebhookService = require('../services/webhookService');
     const result = await WebhookService.send(webhook, 'test.ping', {
-      message: 'SignFlow webhook test',
+      message: 'VueSign webhook test',
       timestamp: new Date().toISOString(),
     });
     res.json(result);

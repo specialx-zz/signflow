@@ -740,6 +740,46 @@ model CustomFont {
   @@unique([tenantId, family, weight, style])
 }
 
+// ─── VueSign Phase W1: 날씨/미세먼지 위치 마스터 ──────
+// 키오스크 매장이 선택할 수 있는 지역 목록.
+// 기상청 단기예보(nx/ny), 중기예보(regIdLand/regIdTa), 에어코리아(airStationName) 매핑을
+// 한 row에 모아둔다. 1회 import 후 거의 변경 없음.
+model WeatherLocation {
+  id             String  @id @default(uuid())
+  sido           String  // "서울특별시", "부산광역시" 등
+  sigungu        String  // "중구", "해운대구" 등 (광역시는 시군구 없을 수 있음)
+  // 기상청 단기예보용 격자
+  nx             Int
+  ny             Int
+  // 기상청 중기예보용
+  regIdLand      String  // "11B00000" (육상 권역)
+  regIdTa        String  // "11B10101" (기온 세부)
+  // 에어코리아용 측정소명
+  airStationName String? // "중구" (대표 측정소)
+  // 검색 인덱스
+  searchKey      String  // "서울 중구" (lowercased로 저장)
+  displayName    String  // "서울특별시 중구" (UI 표기)
+  isActive       Boolean @default(true)
+  sortOrder      Int     @default(0)
+  createdAt      DateTime @default(now())
+
+  @@index([sido, sigungu])
+  @@index([searchKey])
+}
+
+// ─── VueSign Phase W1: 외부 API 응답 캐시 ──────────────
+// 기상청/에어코리아 응답을 DB로 캐싱 (Redis 없는 환경 대응).
+// 같은 격자/측정소를 여러 매장이 공유하면 1회 fetch로 충분.
+model WeatherCache {
+  id        String   @id @default(uuid())
+  cacheKey  String   @unique  // "short:60:127" / "mid:11B00000:11B10101" / "air:중구"
+  payload   String   @db.LongText  // JSON 응답 (정규화된 형태)
+  fetchedAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
 // ─── V4 Phase 12b: 콘텐츠 버저닝 ─────────────────────
 model ContentVersion {
   id         String   @id @default(uuid())

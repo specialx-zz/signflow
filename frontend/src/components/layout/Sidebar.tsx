@@ -74,7 +74,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           <Tv2 className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1">
-          <div className="text-white font-bold text-base leading-tight">SignFlow</div>
+          <div className="text-white font-bold text-base leading-tight">VueSign</div>
           <div className="text-blue-400 text-xs">Digital Signage</div>
         </div>
         {/* Mobile close button */}
@@ -137,7 +137,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Footer */}
       <div className="p-4 border-t border-white/10">
         <div className="text-center text-xs text-gray-600">
-          <div>SignFlow v2.0</div>
+          <div>VueSign v2.0</div>
           <div className="mt-0.5">&copy; 2024 Digital Signage</div>
         </div>
       </div>

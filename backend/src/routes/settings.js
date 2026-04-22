@@ -25,7 +25,7 @@ router.get('/', async (req, res) => {
     res.json({
       server: {
         version: '1.0.0',
-        name: tenantSettings.serverName || 'SignFlow Clone',
+        name: tenantSettings.serverName || 'VueSign Clone',
         timezone: tenantSettings.timezone || 'Asia/Seoul',
         language: tenantSettings.language || 'ko'
       },

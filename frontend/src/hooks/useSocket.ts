@@ -13,7 +13,7 @@ export function useSocket() {
 
   useEffect(() => {
     if (!globalSocket) {
-      // Read token from Zustand authStore (persisted under 'signflow-auth' key)
+      // Read token from Zustand authStore (persisted under 'vuesign-auth' key)
       const token = useAuthStore.getState().token
       globalSocket = io(SERVER_URL, {
         transports: ['websocket', 'polling'],

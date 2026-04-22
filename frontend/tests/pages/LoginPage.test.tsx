@@ -57,12 +57,12 @@ describe('LoginPage', () => {
     expect(submitButton).toHaveAttribute('type', 'submit')
   })
 
-  it('renders the SignFlow branding', () => {
+  it('renders the VueSign branding', () => {
     render(<LoginPage />)
 
-    // There may be multiple "SignFlow" text nodes (mobile + desktop)
-    const signflowElements = screen.getAllByText('SignFlow')
-    expect(signflowElements.length).toBeGreaterThan(0)
+    // There may be multiple "VueSign" text nodes (mobile + desktop)
+    const vuesignElements = screen.getAllByText('VueSign')
+    expect(vuesignElements.length).toBeGreaterThan(0)
   })
 
   it('renders test account buttons', () => {
@@ -80,7 +80,7 @@ describe('LoginPage', () => {
     render(<LoginPage />)
 
     const emailInput = screen.getByPlaceholderText('이메일을 입력하세요') as HTMLInputElement
-    expect(emailInput.value).toBe('admin@signflow.com')
+    expect(emailInput.value).toBe('admin@vuesign.com')
 
     const passwordInput = screen.getByPlaceholderText('비밀번호를 입력하세요') as HTMLInputElement
     expect(passwordInput.value).toBe('admin123')

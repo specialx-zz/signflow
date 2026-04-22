@@ -31,38 +31,38 @@ services:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./certbot/conf:/etc/letsencrypt:ro
       - ./certbot/www:/var/www/certbot:ro
-      # ── SignFlow 추가 ──────────────────────────────────────
-      - ./signflow/frontend-dist:/usr/share/nginx/signflow-admin:ro
-      - ./signflow/player-dist:/usr/share/nginx/signflow-player:ro
-      - ./nginx/signflow.conf:/etc/nginx/conf.d/signflow.conf:ro
+      # ── VueSign 추가 ──────────────────────────────────────
+      - ./vuesign/frontend-dist:/usr/share/nginx/vuesign-admin:ro
+      - ./vuesign/player-dist:/usr/share/nginx/vuesign-player:ro
+      - ./nginx/vuesign.conf:/etc/nginx/conf.d/vuesign.conf:ro
     depends_on:
       - settle-db
-      - signflow-backend
+      - vuesign-backend
     deploy:
       resources:
         limits:
           memory: 512M
 
-  # ── SignFlow Backend (Node.js + SQLite) ──────────────────────
-  signflow-backend:
+  # ── VueSign Backend (Node.js + SQLite) ──────────────────────
+  vuesign-backend:
     build:
-      context: ./signflow/backend
+      context: ./vuesign/backend
       dockerfile: Dockerfile
-    container_name: signflow-backend
+    container_name: vuesign-backend
     restart: always
     environment:
       TZ: Asia/Seoul
       NODE_ENV: production
       PORT: 3001
       # SQLite DB 위치 (볼륨에 영구 저장)
-      DATABASE_URL: "file:/app/data/signflow.db"
+      DATABASE_URL: "file:/app/data/vuesign.db"
       # ⚠️  아래 값 반드시 변경하세요 (32자 이상 랜덤 문자열)
       JWT_SECRET: "change-this-secret-to-random-32chars!!"
       # 프론트엔드 도메인 (CORS 허용)
-      FRONTEND_URL: "https://signflow.yourdomain.com"
+      FRONTEND_URL: "https://vuesign.yourdomain.com"
     volumes:
-      - ./signflow/data:/app/data        # SQLite DB 영구 저장
-      - ./signflow/uploads:/app/uploads  # 업로드 파일 영구 저장
+      - ./vuesign/data:/app/data        # SQLite DB 영구 저장
+      - ./vuesign/uploads:/app/uploads  # 업로드 파일 영구 저장
     # 외부에 포트 노출 안 함 (Nginx 가 내부 프록시)
     expose:
       - "3001"

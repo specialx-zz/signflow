@@ -3,8 +3,8 @@ import { CapacitorConfig } from '@capacitor/cli'
 const isProd = process.env.NODE_ENV === 'production'
 
 const config: CapacitorConfig = {
-  appId: 'com.signflow.player',
-  appName: 'SignFlow Player',
+  appId: 'com.vuesign.player',
+  appName: 'VueSign Player',
   webDir: 'dist',
   server: {
     // Android WebView의 오리진 스킴

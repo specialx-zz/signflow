@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SignFlow Player</title>
+  <title>VueSign Player</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body, #root { width: 100%; height: 100%; overflow: hidden; background: #000; }
@@ -12,6 +12,44 @@
 </head>
 <body>
   <div id="root"></div>
+  <script>
+    // Dev-only browser bypass: '?browser=1' or '#browser' lets the player run
+    // inside a regular browser for QA/E2E testing. Stubs window.electronAPI
+    // with a no-op facade so isElectron() passes. Does nothing if the flag
+    // is absent, so Electron/Capacitor behavior is unchanged.
+    (function () {
+      try {
+        var q = location.search || '';
+        var h = location.hash || '';
+        if (q.indexOf('browser=1') === -1 && h.indexOf('browser') === -1) return;
+        if (window.electronAPI) return;
+        var stub = {
+          isElectron: true,
+          system: {
+            info: function () {
+              return Promise.resolve({
+                platform: 'browser', arch: 'x64', version: '1.0.0',
+                electronVersion: 'stub', isKiosk: false, isDev: true,
+                cacheDir: 'N/A', userData: 'N/A',
+              });
+            },
+            restart: function () {},
+          },
+          cache: {
+            download: function () { return Promise.resolve({ success: false, error: 'browser-stub' }); },
+            downloadWithProgress: function () { return Promise.resolve({ success: false, error: 'browser-stub' }); },
+            onDownloadProgress: function () { return function () {}; },
+            getPath: function () { return Promise.resolve(null); },
+            exists: function () { return Promise.resolve(false); },
+            stats: function () { return Promise.resolve({ totalSize: 0, fileCount: 0, cacheDir: 'N/A' }); },
+            clear: function () { return Promise.resolve({ success: true }); },
+          },
+        };
+        window.electronAPI = stub;
+        console.warn('[browser-stub] electronAPI stubbed — QA/E2E mode only');
+      } catch (e) { console.error('[browser-stub] init failed', e); }
+    })();
+  </script>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>

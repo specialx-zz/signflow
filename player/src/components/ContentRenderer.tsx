@@ -110,10 +110,11 @@ export default function ContentRenderer({
   }, [loadState.phase, onEnded])
 
   // 비디오 외 콘텐츠 duration 기반 자동 전환 (ready 상태일 때만)
+  // VueSign Phase W1: Canvas v2.0 은 pages 개념이 없어졌으므로
+  //                  playlistItem.duration 을 그대로 사용한다.
   useEffect(() => {
     if (loadState.phase !== 'ready') return
     if (content.type === 'VIDEO') return
-    if (content.type === 'CANVAS') return
     if (!isPlaying) return
 
     const duration = (content.duration || 10) * 1000

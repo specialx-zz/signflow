@@ -35,7 +35,7 @@ describe('envValidator', () => {
 
     test('default JWT_SECRET produces warning in dev', () => {
       process.env.DATABASE_URL = 'file:./prisma/dev.db';
-      process.env.JWT_SECRET = 'signflow-super-secret-jwt-key-2024';
+      process.env.JWT_SECRET = 'vuesign-super-secret-jwt-key-2024';
       process.env.NODE_ENV = 'development';
 
       const { warnings, errors } = validateEnv();
@@ -54,7 +54,7 @@ describe('envValidator', () => {
 
     test('default JWT_SECRET produces error in production', () => {
       process.env.DATABASE_URL = 'file:./prisma/dev.db';
-      process.env.JWT_SECRET = 'signflow-super-secret-jwt-key-2024';
+      process.env.JWT_SECRET = 'vuesign-super-secret-jwt-key-2024';
       process.env.NODE_ENV = 'production';
 
       const { errors } = validateEnv();

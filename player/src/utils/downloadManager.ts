@@ -4,7 +4,7 @@
  *
  * 서버에서 콘텐츠 매니페스트를 받아 파일시스템에 다운로드하고
  * 배포 상태를 서버에 보고합니다.
- * 저장 경로: AppData/Roaming/SignFlow Player/content-cache/{contentId}/{filename}
+ * 저장 경로: AppData/Roaming/VueSign Player/content-cache/{contentId}/{filename}
  */
 
 import { apiClient } from './api'

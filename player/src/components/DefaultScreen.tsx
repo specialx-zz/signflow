@@ -250,7 +250,7 @@ export default function DefaultScreen() {
       >
         <div>
           <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '14px', fontWeight: '500', margin: 0 }}>
-            {config?.deviceName ?? 'SignFlow Player'}
+            {config?.deviceName ?? 'VueSign Player'}
           </p>
           <p style={{ color: 'rgba(255,255,255,0.15)', fontSize: '11px', fontFamily: 'monospace', margin: '2px 0 0' }}>
             {config?.deviceId?.slice(-8).toUpperCase()}

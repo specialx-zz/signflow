@@ -1,15 +1,15 @@
 #!/bin/bash
-# SignFlow Backup Script
+# VueSign Backup Script
 # Usage: ./scripts/backup.sh [backup_dir]
 
 set -e
 
 BACKUP_DIR="${1:-./backups}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BACKUP_NAME="signflow_backup_${TIMESTAMP}"
+BACKUP_NAME="vuesign_backup_${TIMESTAMP}"
 BACKUP_PATH="${BACKUP_DIR}/${BACKUP_NAME}"
 
-echo "🗄️  SignFlow Backup - ${TIMESTAMP}"
+echo "🗄️  VueSign Backup - ${TIMESTAMP}"
 echo "================================"
 
 # Create backup directory
@@ -71,10 +71,10 @@ echo "   Location: ${BACKUP_PATH}"
 echo "   Size: ${TOTAL_SIZE}"
 
 # 6. Cleanup old backups (keep last 30)
-BACKUP_COUNT=$(ls -d "${BACKUP_DIR}"/signflow_backup_* 2>/dev/null | wc -l)
+BACKUP_COUNT=$(ls -d "${BACKUP_DIR}"/vuesign_backup_* 2>/dev/null | wc -l)
 if [ "$BACKUP_COUNT" -gt 30 ]; then
   REMOVE_COUNT=$((BACKUP_COUNT - 30))
   echo ""
   echo "🧹 Cleaning up ${REMOVE_COUNT} old backup(s)..."
-  ls -dt "${BACKUP_DIR}"/signflow_backup_* | tail -n "${REMOVE_COUNT}" | xargs rm -rf
+  ls -dt "${BACKUP_DIR}"/vuesign_backup_* | tail -n "${REMOVE_COUNT}" | xargs rm -rf
 fi

@@ -60,8 +60,8 @@ describe('isR2Enabled (R2 not configured)', () => {
 // ─── R2_BUCKET default ───────────────────────────────────
 
 describe('R2_BUCKET', () => {
-  test('defaults to "signflow-content" when R2_BUCKET env var is not set', () => {
-    expect(R2_BUCKET).toBe('signflow-content');
+  test('defaults to "vuesign-content" when R2_BUCKET env var is not set', () => {
+    expect(R2_BUCKET).toBe('vuesign-content');
   });
 });
 

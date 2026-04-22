@@ -75,7 +75,8 @@ export default function PlaylistPlayer({ playlist }: PlaylistPlayerProps) {
     if (transitionTimerRef.current) return
 
     if (sortedItems.length <= 1) {
-      setStableKey((prev) => prev + 1)
+      // 단일 아이템: 전환할 대상이 없으므로 현재 콘텐츠 유지
+      // setStableKey 로 key를 바꾸면 전체 리마운트 → 깜빡임 발생
       return
     }
 

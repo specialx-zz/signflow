@@ -204,7 +204,7 @@ export default function SetupScreen({ onConfigured }: SetupScreenProps) {
             </span>
           </div>
           <h1 style={{ color: '#fff', fontSize: '26px', fontWeight: '700', margin: '0 0 8px' }}>
-            SignFlow Player
+            VueSign Player
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', margin: 0 }}>
             디지털 사이니지 플레이어

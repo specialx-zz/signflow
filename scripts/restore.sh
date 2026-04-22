@@ -1,5 +1,5 @@
 #!/bin/bash
-# SignFlow Restore Script
+# VueSign Restore Script
 # Usage: ./scripts/restore.sh <backup_path>
 
 set -e
@@ -10,7 +10,7 @@ if [ -z "$BACKUP_PATH" ]; then
   echo "Usage: ./scripts/restore.sh <backup_path>"
   echo ""
   echo "Available backups:"
-  ls -d backups/signflow_backup_* 2>/dev/null || echo "  No backups found in ./backups/"
+  ls -d backups/vuesign_backup_* 2>/dev/null || echo "  No backups found in ./backups/"
   exit 1
 fi
 
@@ -19,7 +19,7 @@ if [ ! -d "$BACKUP_PATH" ]; then
   exit 1
 fi
 
-echo "🔄 SignFlow Restore"
+echo "🔄 VueSign Restore"
 echo "==================="
 echo "   From: ${BACKUP_PATH}"
 

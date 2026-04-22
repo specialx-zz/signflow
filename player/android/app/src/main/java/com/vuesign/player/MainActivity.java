@@ -1,4 +1,4 @@
-package com.signflow.player;
+package com.vuesign.player;
 
 import com.getcapacitor.BridgeActivity;
 

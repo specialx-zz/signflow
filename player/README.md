@@ -1,12 +1,12 @@
-# SignFlow Player
+# VueSign Player
 
-DID (Digital Information Display) web player for the SignFlow system. Runs in a browser (Chrome kiosk mode) on display devices and connects to the SignFlow management server.
+DID (Digital Information Display) web player for the VueSign system. Runs in a browser (Chrome kiosk mode) on display devices and connects to the VueSign management server.
 
 ## Development
 
 ### Prerequisites
 - Node.js 18+
-- SignFlow backend running on port 3001
+- VueSign backend running on port 3001
 
 ### Install & Run
 
@@ -40,7 +40,7 @@ http://localhost:5174/?server=http://192.168.1.100:3001&name=Lobby-Display-1
 
 | Parameter | Description |
 |-----------|-------------|
-| `server`  | SignFlow backend URL |
+| `server`  | VueSign backend URL |
 | `name`    | Device display name |
 
 If both are provided, the player auto-registers without showing the setup screen.

@@ -5,6 +5,7 @@
  */
 
 const prisma = require('../utils/prisma');
+const { verifyTenantOwnership } = require('../middleware/tenant');
 const { v4: uuidv4 } = require('uuid');
 
 // ─── 캔버스 콘텐츠 저장 (신규) ─────────────────────────
@@ -68,7 +69,7 @@ const updateCanvas = async (req, res) => {
 
     if (!content) return res.status(404).json({ error: '콘텐츠를 찾을 수 없습니다' });
     if (!content.isCanvas) return res.status(400).json({ error: '캔버스 콘텐츠가 아닙니다' });
-    if (req.tenantId && content.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(content, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -113,7 +114,7 @@ const getCanvas = async (req, res) => {
 
     if (!content) return res.status(404).json({ error: '콘텐츠를 찾을 수 없습니다' });
     if (!content.isCanvas) return res.status(400).json({ error: '캔버스 콘텐츠가 아닙니다' });
-    if (req.tenantId && content.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(content, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 

@@ -4,11 +4,13 @@ const {
   getPlaylists, getPlaylistById, createPlaylist, updatePlaylist, deletePlaylist,
   addPlaylistItem, updatePlaylistItem, removePlaylistItem, reorderPlaylistItems
 } = require('../controllers/playlistController');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authenticate, optionalAuthenticate, authorize } = require('../middleware/auth');
 const { tenantContext } = require('../middleware/tenant');
 
-// ─── Player route (no auth required – called from kiosk player) ──────────────
-router.get('/:id', getPlaylistById);
+// ─── Public-ish route: authenticated admins AND kiosk player 모두 접근 ─────
+// - 관리자(Bearer 토큰 보유) → req.user/req.tenantId 세팅 후 tenant 체크
+// - 플레이어(토큰 없음) → req.query.tenantId 로 tenant 체크
+router.get('/:id', optionalAuthenticate, getPlaylistById);
 
 // ─── Admin routes (require authentication) ────────────────────────────────────
 router.use(authenticate);

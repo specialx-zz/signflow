@@ -1,9 +1,25 @@
 /**
- * Canvas Content Renderer for Player
- * Renders canvas JSON data (pages with elements/widgets) as HTML
+ * VueSign Phase W1: Canvas v2.0 Player Renderer
+ *
+ * 특징:
+ *   - 단일 페이지(flat elements) 렌더링 (v1 pages 개념 제거)
+ *   - 배경: backgroundColor + backgroundImage(fit: contain/cover/fill)
+ *   - 요소 타입: text, image, widget (shape 제거, legacy v1 shape 는 무시)
+ *   - widget: 날씨/대기질 위젯 9종을 WeatherWidgetsPlayer 로 위임
+ *
+ * 동작:
+ *   - Canvas 컨텐츠 자체는 "끝" 개념이 없으므로 PlaylistItem.duration 을 사용해
+ *     ContentRenderer 에서 onEnded 를 호출한다. 하지만 기존 호환성을 위해
+ *     props.onEnded 가 호출되지 않아도 ContentRenderer 의 duration 타이머가
+ *     V2 캔버스에도 적용되도록 CanvasRenderer 는 의무적으로 onEnded 를 호출하지 않는다.
+ *     (CanvasRenderer 내부에서 time-based 로 호출하지 않음.)
+ *
+ * 레거시 v1 지원:
+ *   - version !== '2.0' 인 경우 pages[0].elements 를 사용하고 shape 는 필터링한다.
  */
-import React, { useState, useEffect, useRef } from 'react'
-import type { CanvasData, CanvasPage, CanvasElement } from '../types'
+import React, { useMemo } from 'react'
+import type { CanvasData, CanvasElement, WidgetKey, WidgetConfig } from '../types'
+import WeatherWidgetsPlayer from './WeatherWidgetsPlayer'
 
 interface CanvasRendererProps {
   canvasData: CanvasData
@@ -12,44 +28,67 @@ interface CanvasRendererProps {
   height?: number
 }
 
-export default function CanvasRenderer({ canvasData, onEnded, width, height }: CanvasRendererProps) {
-  const [currentPageIndex, setCurrentPageIndex] = useState(0)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const { canvas, pages } = canvasData
+// ─── v1 → v2 정규화 ─────────────────────────────
+interface NormalizedCanvas {
+  width: number
+  height: number
+  backgroundColor: string
+  backgroundImage?: string
+  backgroundFit: 'contain' | 'cover' | 'fill'
+  elements: CanvasElement[]
+}
+
+function normalize(data: CanvasData): NormalizedCanvas {
+  const width = data.canvas?.width || 1920
+  const height = data.canvas?.height || 1080
+  const backgroundColor =
+    data.canvas?.backgroundColor || data.canvas?.background || '#000000'
+  const backgroundImage = data.canvas?.backgroundImage
+  const backgroundFit = (data.canvas?.backgroundFit || 'cover') as
+    | 'contain'
+    | 'cover'
+    | 'fill'
+
+  // v2.0: elements 직접 사용
+  let rawElements: CanvasElement[] = []
+  if (data.version === '2.0' && Array.isArray(data.elements)) {
+    rawElements = data.elements
+  } else if (Array.isArray(data.elements)) {
+    rawElements = data.elements
+  } else if (Array.isArray(data.pages) && data.pages[0]?.elements) {
+    // 레거시 v1: 첫 페이지만 사용
+    rawElements = data.pages[0].elements || []
+  }
+
+  // shape 제거, visible !== false 만 남김
+  const elements = rawElements
+    .filter((el) => el && el.type !== 'shape' && el.visible !== false)
+    .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0))
+
+  return {
+    width,
+    height,
+    backgroundColor,
+    backgroundImage,
+    backgroundFit,
+    elements,
+  }
+}
+
+// ─── 메인 Renderer ───────────────────────────────
+export default function CanvasRenderer({
+  canvasData,
+  width,
+  height,
+}: CanvasRendererProps) {
+  const normalized = useMemo(() => normalize(canvasData), [canvasData])
 
   // Container dimensions — scale to fit
   const containerWidth = width || window.innerWidth
   const containerHeight = height || window.innerHeight
-  const scaleX = containerWidth / canvas.width
-  const scaleY = containerHeight / canvas.height
+  const scaleX = containerWidth / normalized.width
+  const scaleY = containerHeight / normalized.height
   const scale = Math.min(scaleX, scaleY)
-
-  // Auto-advance pages, then call onEnded when all done
-  useEffect(() => {
-    if (!pages || pages.length === 0) return
-
-    const page = pages[currentPageIndex]
-    const duration = (page?.duration || 10) * 1000
-
-    timerRef.current = setTimeout(() => {
-      if (currentPageIndex < pages.length - 1) {
-        setCurrentPageIndex(prev => prev + 1)
-      } else {
-        // All pages done
-        onEnded()
-      }
-    }, duration)
-
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-    }
-  }, [currentPageIndex, pages, onEnded])
-
-  if (!pages || pages.length === 0) {
-    return <div style={{ background: '#000', width: '100%', height: '100%' }} />
-  }
-
-  const page = pages[currentPageIndex]
 
   return (
     <div
@@ -61,35 +100,49 @@ export default function CanvasRenderer({ canvasData, onEnded, width, height }: C
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: canvas.background || '#000',
+        background: normalized.backgroundColor,
         overflow: 'hidden',
       }}
     >
       <div
         style={{
           position: 'relative',
-          width: canvas.width,
-          height: canvas.height,
+          width: normalized.width,
+          height: normalized.height,
           transform: `scale(${scale})`,
           transformOrigin: 'center center',
-          background: canvas.background || '#000',
+          background: normalized.backgroundColor,
         }}
       >
-        {page.elements
-          .filter(el => el.visible !== false)
-          .sort((a, b) => a.zIndex - b.zIndex)
-          .map(element => (
-            <ElementRenderer key={element.id} element={element} />
-          ))}
+        {/* 배경 이미지 */}
+        {normalized.backgroundImage && (
+          <img
+            src={normalized.backgroundImage}
+            alt=""
+            draggable={false}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: normalized.backgroundFit,
+              pointerEvents: 'none',
+              userSelect: 'none',
+            }}
+          />
+        )}
+
+        {/* 요소 */}
+        {normalized.elements.map((element) => (
+          <ElementRenderer key={element.id} element={element} />
+        ))}
       </div>
     </div>
   )
 }
 
-// ─── Element Renderer ─────────────────────────
+// ─── Element Renderer ───────────────────────────
 function ElementRenderer({ element }: { element: CanvasElement }) {
-  const animStyle = getAnimationStyle(element)
-
   const wrapperStyle: React.CSSProperties = {
     position: 'absolute',
     left: element.x,
@@ -97,10 +150,9 @@ function ElementRenderer({ element }: { element: CanvasElement }) {
     width: element.width,
     height: element.height,
     opacity: element.opacity ?? 1,
-    transform: `rotate(${element.rotation || 0}deg)`,
+    transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
     zIndex: element.zIndex,
     overflow: 'hidden',
-    ...animStyle,
   }
 
   switch (element.type) {
@@ -117,19 +169,19 @@ function ElementRenderer({ element }: { element: CanvasElement }) {
               fontWeight: element.bold ? 'bold' : 'normal',
               fontStyle: element.italic ? 'italic' : 'normal',
               textDecoration: element.underline ? 'underline' : 'none',
-              textAlign: (element.textAlign as any) || 'left',
+              textAlign: (element.textAlign as 'left' | 'center' | 'right') || 'left',
               lineHeight: element.lineHeight || 1.2,
+              textShadow: element.textShadow,
               wordBreak: 'break-word',
               whiteSpace: 'pre-wrap',
+              display: 'flex',
+              alignItems: 'center',
             }}
           >
             {element.content || ''}
           </div>
         </div>
       )
-
-    case 'shape':
-      return <ShapeRenderer element={element} style={wrapperStyle} />
 
     case 'image':
       return (
@@ -138,10 +190,12 @@ function ElementRenderer({ element }: { element: CanvasElement }) {
             <img
               src={element.src}
               alt=""
+              draggable={false}
               style={{
                 width: '100%',
                 height: '100%',
-                objectFit: (element.fit as any) || 'cover',
+                objectFit: (element.fit as 'cover' | 'contain' | 'fill') || 'cover',
+                userSelect: 'none',
               }}
             />
           ) : (
@@ -151,257 +205,18 @@ function ElementRenderer({ element }: { element: CanvasElement }) {
       )
 
     case 'widget':
-      return <WidgetRenderer element={element} style={wrapperStyle} />
+      return (
+        <WeatherWidgetsPlayer
+          widget={(element.widget || 'weather.current') as WidgetKey}
+          config={(element.config || {}) as WidgetConfig}
+          width={element.width}
+          height={element.height}
+          style={wrapperStyle}
+        />
+      )
 
     default:
+      // 레거시 shape 등은 빈 박스로 처리 (이미 filter 단계에서 제거되지만 안전장치)
       return <div style={wrapperStyle} />
   }
-}
-
-// ─── Shape Renderer ─────────────────────────
-function ShapeRenderer({ element, style }: { element: CanvasElement; style: React.CSSProperties }) {
-  const { shape, fill, stroke, strokeWidth, borderRadius } = element
-
-  switch (shape) {
-    case 'rect':
-      return (
-        <div
-          style={{
-            ...style,
-            background: fill || '#3B82F6',
-            border: stroke ? `${strokeWidth || 1}px solid ${stroke}` : undefined,
-            borderRadius: borderRadius || 0,
-          }}
-        />
-      )
-
-    case 'circle':
-      return (
-        <div
-          style={{
-            ...style,
-            background: fill || '#10B981',
-            border: stroke ? `${strokeWidth || 1}px solid ${stroke}` : undefined,
-            borderRadius: '50%',
-          }}
-        />
-      )
-
-    case 'triangle':
-      return (
-        <div style={style}>
-          <svg width="100%" height="100%" viewBox={`0 0 ${element.width} ${element.height}`}>
-            <polygon
-              points={`${element.width / 2},0 ${element.width},${element.height} 0,${element.height}`}
-              fill={fill || '#F59E0B'}
-              stroke={stroke || 'none'}
-              strokeWidth={strokeWidth || 0}
-            />
-          </svg>
-        </div>
-      )
-
-    case 'line':
-      return (
-        <div style={style}>
-          <svg width="100%" height="100%">
-            <line
-              x1="0" y1={element.height / 2}
-              x2={element.width} y2={element.height / 2}
-              stroke={stroke || fill || '#FFFFFF'}
-              strokeWidth={strokeWidth || 2}
-            />
-          </svg>
-        </div>
-      )
-
-    case 'arrow':
-      const w = element.width
-      const h = Math.max(element.height, 4)
-      const headLen = Math.min(20, w * 0.2)
-      const headW = Math.max(h * 2, 10)
-      const midY = h / 2
-      return (
-        <div style={style}>
-          <svg width="100%" height="100%" viewBox={`0 0 ${w} ${h}`}>
-            <line x1="0" y1={midY} x2={w - headLen} y2={midY}
-              stroke={stroke || fill || '#FFFFFF'} strokeWidth={strokeWidth || 2} />
-            <polyline
-              points={`${w - headLen},${midY - headW / 2} ${w},${midY} ${w - headLen},${midY + headW / 2}`}
-              fill="none" stroke={stroke || fill || '#FFFFFF'} strokeWidth={strokeWidth || 2}
-            />
-          </svg>
-        </div>
-      )
-
-    default:
-      return (
-        <div style={{ ...style, background: fill || '#3B82F6', borderRadius: borderRadius || 0 }} />
-      )
-  }
-}
-
-// ─── Widget Renderer (simplified for player) ─────────────────────────
-function WidgetRenderer({ element, style }: { element: CanvasElement; style: React.CSSProperties }) {
-  const config = element.config || {}
-
-  switch (element.widget) {
-    case 'clock':
-      return <ClockWidgetPlayer config={config} style={style} />
-
-    case 'weather':
-      return (
-        <div style={{ ...style, background: (config.bgColor as string) || 'rgba(0,0,0,0.4)', borderRadius: 8, padding: 16, color: (config.color as string) || '#fff' }}>
-          <div style={{ fontSize: 14, opacity: 0.7 }}>{(config.city as string) || 'Seoul'}</div>
-          <div style={{ fontSize: 36, fontWeight: 'bold' }}>--°</div>
-        </div>
-      )
-
-    case 'rss':
-      return (
-        <div style={{ ...style, background: (config.bgColor as string) || 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', borderRadius: 4, overflow: 'hidden' }}>
-          <div style={{ padding: '0 8px', background: '#EF4444', height: '100%', display: 'flex', alignItems: 'center' }}>
-            <span style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>NEWS</span>
-          </div>
-          <div style={{ color: (config.color as string) || '#fff', fontSize: (config.fontSize as number) || 14, whiteSpace: 'nowrap', paddingLeft: 8, animation: 'rssScroll 20s linear infinite' }}>
-            RSS 뉴스 피드
-          </div>
-        </div>
-      )
-
-    case 'qrcode':
-      return (
-        <div style={{ ...style, background: '#fff', borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 8 }}>
-          <div style={{ width: (config.size as number) || 120, height: (config.size as number) || 120, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#666' }}>
-            QR
-          </div>
-          {config.label ? <div style={{ marginTop: 4, fontSize: 12 }}>{String(config.label)}</div> : null}
-        </div>
-      )
-
-    case 'video':
-      return (
-        <div style={style}>
-          {config.src ? (
-            <video
-              src={config.src as string}
-              autoPlay
-              loop={config.loop as boolean}
-              muted={config.muted as boolean}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-          ) : (
-            <div style={{ width: '100%', height: '100%', background: '#1F2937', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
-              비디오 없음
-            </div>
-          )}
-        </div>
-      )
-
-    case 'webpage':
-      return (
-        <div style={style}>
-          <iframe
-            src={(config.url as string) || 'about:blank'}
-            style={{ width: '100%', height: '100%', border: 'none' }}
-            title="webpage"
-          />
-        </div>
-      )
-
-    case 'spreadsheet':
-      return (
-        <div style={style}>
-          <iframe
-            src={(config.url as string) || 'about:blank'}
-            style={{ width: '100%', height: '100%', border: 'none' }}
-            title="spreadsheet"
-          />
-        </div>
-      )
-
-    case 'chart':
-      return (
-        <div style={{ ...style, background: (config.bgColor as string) || 'rgba(0,0,0,0.4)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: (config.color as string) || '#fff' }}>
-          {(config.title as string) || '차트'}
-        </div>
-      )
-
-    default:
-      return <div style={{ ...style, background: 'rgba(0,0,0,0.3)' }} />
-  }
-}
-
-// ─── Clock Widget for Player ─────────────────────────
-function ClockWidgetPlayer({ config, style }: { config: Record<string, unknown>; style: React.CSSProperties }) {
-  const [now, setNow] = useState(new Date())
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(timer)
-  }, [])
-
-  const fmt = (config.format as string) || 'HH:mm:ss'
-  const showDate = config.showDate !== false
-  const dateFmt = (config.dateFormat as string) || 'yyyy-MM-dd'
-
-  // Simple time formatting
-  const pad = (n: number) => n.toString().padStart(2, '0')
-  const h24 = pad(now.getHours())
-  const h12 = pad(now.getHours() % 12 || 12)
-  const m = pad(now.getMinutes())
-  const s = pad(now.getSeconds())
-  const ampm = now.getHours() >= 12 ? 'PM' : 'AM'
-
-  let timeStr = fmt
-    .replace('HH', h24).replace('hh', h12)
-    .replace('mm', m).replace('ss', s)
-    .replace('a', ampm)
-
-  const y = now.getFullYear().toString()
-  const mo = pad(now.getMonth() + 1)
-  const d = pad(now.getDate())
-  let dateStr = dateFmt
-    .replace('yyyy', y).replace('MM', mo).replace('dd', d)
-
-  return (
-    <div style={{
-      ...style,
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      fontFamily: (config.fontFamily as string) || 'Noto Sans KR, sans-serif',
-      color: (config.color as string) || '#FFFFFF',
-    }}>
-      <div style={{ fontSize: Math.min(style.width as number || 300, style.height as number || 120) * 0.35, fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
-        {timeStr}
-      </div>
-      {showDate && (
-        <div style={{ fontSize: Math.min(style.width as number || 300, style.height as number || 120) * 0.14, opacity: 0.7, marginTop: 4 }}>
-          {dateStr}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Animation helpers ─────────────────────────
-function getAnimationStyle(element: CanvasElement): React.CSSProperties {
-  const anim = element.animation
-  if (!anim) return {}
-
-  const styles: React.CSSProperties = {}
-  const enter = anim.enter || 'none'
-  const loop = anim.loop || 'none'
-  const duration = anim.duration || 0.5
-  const delay = anim.delay || 0
-  const easing = anim.easing || 'ease'
-
-  if (enter !== 'none') {
-    styles.animation = `${enter} ${duration}s ${easing} ${delay}s both`
-  }
-  if (loop !== 'none') {
-    const loopAnim = `${loop} ${duration}s ${easing} ${delay}s infinite`
-    styles.animation = styles.animation ? `${styles.animation}, ${loopAnim}` : loopAnim
-  }
-  return styles
 }

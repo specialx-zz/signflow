@@ -9,7 +9,7 @@ test.describe('Authentication', () => {
 
   test('should login as tenant admin', async ({ page }) => {
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'admin@signflow.com');
+    await page.fill('input[type="email"]', 'admin@vuesign.com');
     await page.fill('input[type="password"]', 'admin123');
     await page.click('button[type="submit"]');
     await page.waitForURL('**/dashboard', { timeout: 10000 });

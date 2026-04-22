@@ -18,7 +18,7 @@ async function seed() {
       id: DEFAULT_TENANT_ID,
       name: 'Default Tenant',
       slug: 'default',
-      contactEmail: 'admin@signflow.com',
+      contactEmail: 'admin@vuesign.com',
       timezone: 'Asia/Seoul',
     }
   });
@@ -48,39 +48,39 @@ async function seed() {
   const userPassword = await bcrypt.hash('user123', 10);
 
   const superAdmin = await prisma.user.upsert({
-    where: { email: 'superadmin@signflow.com' },
+    where: { email: 'superadmin@vuesign.com' },
     update: { role: 'SUPER_ADMIN' },
     create: {
       id: uuidv4(),
       tenantId: DEFAULT_TENANT_ID,
       username: 'superadmin',
-      email: 'superadmin@signflow.com',
+      email: 'superadmin@vuesign.com',
       password: superAdminPassword,
       role: 'SUPER_ADMIN',
     }
   });
 
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@signflow.com' },
+    where: { email: 'admin@vuesign.com' },
     update: { role: 'TENANT_ADMIN', tenantId: DEFAULT_TENANT_ID },
     create: {
       id: uuidv4(),
       tenantId: DEFAULT_TENANT_ID,
       username: 'admin',
-      email: 'admin@signflow.com',
+      email: 'admin@vuesign.com',
       password: adminPassword,
       role: 'TENANT_ADMIN',
     }
   });
 
   const user1 = await prisma.user.upsert({
-    where: { email: 'user@signflow.com' },
+    where: { email: 'user@vuesign.com' },
     update: { tenantId: DEFAULT_TENANT_ID },
     create: {
       id: uuidv4(),
       tenantId: DEFAULT_TENANT_ID,
       username: 'user1',
-      email: 'user@signflow.com',
+      email: 'user@vuesign.com',
       password: userPassword,
       role: 'USER',
     }
@@ -89,13 +89,13 @@ async function seed() {
   // Store Manager account
   const storeManagerPassword = await bcrypt.hash('manager123', 10);
   await prisma.user.upsert({
-    where: { email: 'manager@signflow.com' },
+    where: { email: 'manager@vuesign.com' },
     update: { role: 'STORE_MANAGER', tenantId: DEFAULT_TENANT_ID },
     create: {
       id: uuidv4(),
       tenantId: DEFAULT_TENANT_ID,
       username: 'manager',
-      email: 'manager@signflow.com',
+      email: 'manager@vuesign.com',
       password: storeManagerPassword,
       role: 'STORE_MANAGER',
     }
@@ -104,13 +104,13 @@ async function seed() {
   // Viewer account
   const viewerPassword = await bcrypt.hash('viewer123', 10);
   await prisma.user.upsert({
-    where: { email: 'viewer@signflow.com' },
+    where: { email: 'viewer@vuesign.com' },
     update: { role: 'VIEWER', tenantId: DEFAULT_TENANT_ID },
     create: {
       id: uuidv4(),
       tenantId: DEFAULT_TENANT_ID,
       username: 'viewer',
-      email: 'viewer@signflow.com',
+      email: 'viewer@vuesign.com',
       password: viewerPassword,
       role: 'VIEWER',
     }
@@ -337,11 +337,11 @@ async function seed() {
   console.log('Statistics created');
   console.log('Seeding complete!');
   console.log('\nLogin credentials:');
-  console.log('Super Admin: superadmin@signflow.com / superadmin123');
-  console.log('Company Admin: admin@signflow.com / admin123');
-  console.log('Store Manager: manager@signflow.com / manager123');
-  console.log('User: user@signflow.com / user123');
-  console.log('Viewer: viewer@signflow.com / viewer123');
+  console.log('Super Admin: superadmin@vuesign.com / superadmin123');
+  console.log('Company Admin: admin@vuesign.com / admin123');
+  console.log('Store Manager: manager@vuesign.com / manager123');
+  console.log('User: user@vuesign.com / user123');
+  console.log('Viewer: viewer@vuesign.com / viewer123');
 }
 
 seed()

@@ -68,6 +68,61 @@ const authenticate = async (req, res, next) => {
 };
 
 /**
+ * Optional JWT 인증 미들웨어
+ * - Authorization 헤더가 있으면 검증 후 req.user/req.tenantId 설정
+ * - 없거나 유효하지 않으면 그냥 통과 (req.user 는 undefined)
+ * - 인증된 사용자와 플레이어(kiosk) 양쪽에서 접근 가능한 라우트용
+ */
+const optionalAuthenticate = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return next();
+    }
+    if (!process.env.JWT_SECRET) {
+      return next();
+    }
+
+    const token = authHeader.substring(7);
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+    } catch {
+      // 토큰이 있지만 유효하지 않은 경우에도 그냥 통과
+      return next();
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: true,
+        tenantId: true,
+        storeId: true,
+        isActive: true,
+      }
+    });
+
+    if (user && user.isActive) {
+      req.user = user;
+      // tenantContext 와 동일한 규칙으로 req.tenantId 설정
+      if (user.role === 'SUPER_ADMIN') {
+        const headerTenantId = req.headers['x-tenant-id'];
+        req.tenantId = headerTenantId || null; // null = 전체 접근
+      } else if (user.tenantId) {
+        req.tenantId = user.tenantId;
+      }
+    }
+    next();
+  } catch (error) {
+    // 옵셔널이므로 에러가 나더라도 무조건 통과
+    next();
+  }
+};
+
+/**
  * 역할 기반 인가 미들웨어
  * - 계층 기반: authorize('USER')이면 USER 이상 (STORE_MANAGER, TENANT_ADMIN, SUPER_ADMIN) 모두 통과
  */
@@ -92,4 +147,4 @@ const superAdminOnly = (req, res, next) => {
   next();
 };
 
-module.exports = { authenticate, authorize, superAdminOnly, hasRole, ROLE_HIERARCHY };
+module.exports = { authenticate, optionalAuthenticate, authorize, superAdminOnly, hasRole, ROLE_HIERARCHY };

@@ -1,4 +1,4 @@
-# SignFlow V3 기획서 - SaaS 고도화 & 프로덕션 준비
+# VueSign V3 기획서 - SaaS 고도화 & 프로덕션 준비
 
 > 작성일: 2026-03-30
 > 대상 버전: V2.0 → V3.0
@@ -917,8 +917,8 @@ src/utils/ (3 파일)                     ~400 LOC
 
 | 역할 | 이메일 | 비밀번호 | 설명 |
 |------|--------|---------|------|
-| 최고관리자 | superadmin@signflow.com | superadmin123 | 전체 시스템 관리 |
-| 업체관리자 | admin@signflow.com | admin123 | 업체 내 전체 관리 |
-| 매장관리자 | manager@signflow.com | manager123 | 매장 단위 운영 |
-| 사용자 | user@signflow.com | user123 | 콘텐츠 작업 |
-| 뷰어 | viewer@signflow.com | viewer123 | 조회만 가능 |
+| 최고관리자 | superadmin@vuesign.com | superadmin123 | 전체 시스템 관리 |
+| 업체관리자 | admin@vuesign.com | admin123 | 업체 내 전체 관리 |
+| 매장관리자 | manager@vuesign.com | manager123 | 매장 단위 운영 |
+| 사용자 | user@vuesign.com | user123 | 콘텐츠 작업 |
+| 뷰어 | viewer@vuesign.com | viewer123 | 조회만 가능 |

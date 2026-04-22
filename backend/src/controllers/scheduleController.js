@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const { verifyTenantOwnership } = require('../middleware/tenant');
 const { v4: uuidv4 } = require('uuid');
 
 const getSchedules = async (req, res) => {
@@ -65,7 +66,7 @@ const getScheduleById = async (req, res) => {
       return res.status(404).json({ error: 'Schedule not found' });
     }
 
-    if (req.tenantId && schedule.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(schedule, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -151,7 +152,7 @@ const updateSchedule = async (req, res) => {
     if (!schedule) {
       return res.status(404).json({ error: 'Schedule not found' });
     }
-    if (req.tenantId && schedule.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(schedule, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -225,7 +226,7 @@ const deleteSchedule = async (req, res) => {
     if (!schedule) {
       return res.status(404).json({ error: 'Schedule not found' });
     }
-    if (req.tenantId && schedule.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(schedule, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -272,7 +273,7 @@ const deploySchedule = async (req, res) => {
       return res.status(404).json({ error: 'Schedule not found' });
     }
 
-    if (req.tenantId && schedule.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(schedule, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 

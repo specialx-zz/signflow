@@ -7,6 +7,7 @@
  */
 
 const prisma = require('../utils/prisma');
+const { verifyTenantOwnership } = require('../middleware/tenant');
 const { v4: uuidv4 } = require('uuid');
 
 // ─── 채널 CRUD ────────────────────────────────────
@@ -73,7 +74,7 @@ const getChannel = async (req, res) => {
     });
 
     if (!channel) return res.status(404).json({ error: '채널을 찾을 수 없습니다' });
-    if (req.tenantId && channel.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(channel, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -125,7 +126,7 @@ const updateChannel = async (req, res) => {
     const { name, description, isDefault, isActive } = req.body;
     const existing = await prisma.channel.findUnique({ where: { id: req.params.id } });
     if (!existing) return res.status(404).json({ error: '채널을 찾을 수 없습니다' });
-    if (req.tenantId && existing.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(existing, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -160,7 +161,7 @@ const deleteChannel = async (req, res) => {
   try {
     const existing = await prisma.channel.findUnique({ where: { id: req.params.id } });
     if (!existing) return res.status(404).json({ error: '채널을 찾을 수 없습니다' });
-    if (req.tenantId && existing.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(existing, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 

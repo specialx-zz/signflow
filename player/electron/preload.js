@@ -1,5 +1,5 @@
 /**
- * SignFlow Player — Electron Preload Script
+ * VueSign Player — Electron Preload Script
  *
  * Exposes safe IPC bridges to the renderer process via contextBridge.
  * The renderer (web player) can check `window.electronAPI` to detect

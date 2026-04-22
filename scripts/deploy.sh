@@ -1,12 +1,12 @@
 #!/bin/bash
-# SignFlow Deploy Script
+# VueSign Deploy Script
 # Usage: ./scripts/deploy.sh [environment]
 
 set -e
 
 ENV="${1:-staging}"
 
-echo "🚀 SignFlow Deploy - ${ENV}"
+echo "🚀 VueSign Deploy - ${ENV}"
 echo "=========================="
 
 # 1. Pre-deploy checks
@@ -43,7 +43,7 @@ if [ "$ENV" = "production" ]; then
   echo "   ✅ Docker services restarted"
 else
   echo "🔄 Restarting with PM2..."
-  pm2 restart signflow-backend 2>/dev/null || pm2 start backend/src/app.js --name signflow-backend
+  pm2 restart vuesign-backend 2>/dev/null || pm2 start backend/src/app.js --name vuesign-backend
   echo "   ✅ Backend restarted"
 fi
 

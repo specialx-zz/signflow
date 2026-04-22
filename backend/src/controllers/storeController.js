@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const { verifyTenantOwnership } = require('../middleware/tenant');
 const { v4: uuidv4 } = require('uuid');
 
 /**
@@ -42,7 +43,7 @@ const getStoreById = async (req, res) => {
     }
 
     // 테넌트 소유권 확인
-    if (req.tenantId && store.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(store, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다.' });
     }
 
@@ -104,7 +105,7 @@ const updateStore = async (req, res) => {
     }
 
     // 테넌트 소유권 확인
-    if (req.tenantId && store.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(store, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다.' });
     }
 
@@ -143,7 +144,7 @@ const deleteStore = async (req, res) => {
     }
 
     // 테넌트 소유권 확인
-    if (req.tenantId && store.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(store, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다.' });
     }
 
@@ -168,7 +169,7 @@ const getStoreDevices = async (req, res) => {
     if (!store) {
       return res.status(404).json({ error: '매장을 찾을 수 없습니다.' });
     }
-    if (req.tenantId && store.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(store, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다.' });
     }
 
@@ -201,7 +202,7 @@ const assignDeviceToStore = async (req, res) => {
     if (!store) {
       return res.status(404).json({ error: '매장을 찾을 수 없습니다.' });
     }
-    if (req.tenantId && store.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(store, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다.' });
     }
 
@@ -235,7 +236,7 @@ const removeDeviceFromStore = async (req, res) => {
     if (!store) {
       return res.status(404).json({ error: '매장을 찾을 수 없습니다.' });
     }
-    if (req.tenantId && store.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(store, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다.' });
     }
 

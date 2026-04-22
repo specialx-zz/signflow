@@ -1,7 +1,7 @@
-// SignFlow Player Service Worker
+// VueSign Player Service Worker
 // Provides offline caching for static assets
 
-const CACHE_NAME = 'signflow-player-v1'
+const CACHE_NAME = 'vuesign-player-v1'
 const STATIC_ASSETS = [
   '/',
   '/index.html',

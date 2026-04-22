@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const { verifyTenantOwnership } = require('../middleware/tenant');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const { validatePassword } = require('../utils/password');
@@ -73,7 +74,7 @@ const getUserById = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    if (req.user.role !== 'SUPER_ADMIN' && req.tenantId && user.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(user, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -146,7 +147,7 @@ const updateUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    if (req.user.role !== 'SUPER_ADMIN' && req.tenantId && user.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(user, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -201,7 +202,7 @@ const deleteUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    if (req.user.role !== 'SUPER_ADMIN' && req.tenantId && user.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(user, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 

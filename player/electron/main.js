@@ -1,5 +1,5 @@
 /**
- * SignFlow Player — Electron Main Process
+ * VueSign Player — Electron Main Process
  *
  * Wraps the web player in an Electron shell with:
  * - Kiosk mode (fullscreen, no Esc exit)
@@ -125,7 +125,7 @@ app.whenReady().then(() => {
     setupAutoUpdater();
   }
 
-  console.log('[Electron] SignFlow Player started');
+  console.log('[Electron] VueSign Player started');
   console.log(`[Electron] Kiosk: ${KIOSK_MODE}, Dev: ${IS_DEV}`);
   console.log(`[Electron] Cache dir: ${CACHE_DIR}`);
 });

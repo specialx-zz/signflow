@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const { verifyTenantOwnership } = require('../middleware/tenant');
 const { v4: uuidv4 } = require('uuid');
 
 // GET /api/layouts
@@ -69,7 +70,7 @@ const getLayoutById = async (req, res) => {
     });
 
     if (!layout) return res.status(404).json({ error: 'Layout not found' });
-    if (req.tenantId && layout.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(layout, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
     return res.json(layout);
@@ -113,7 +114,7 @@ const updateLayout = async (req, res) => {
 
     const existing = await prisma.layout.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ error: 'Layout not found' });
-    if (req.tenantId && existing.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(existing, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -141,7 +142,7 @@ const deleteLayout = async (req, res) => {
     const { id } = req.params;
     const layout = await prisma.layout.findUnique({ where: { id } });
     if (!layout) return res.status(404).json({ error: 'Layout not found' });
-    if (req.tenantId && layout.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(layout, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -162,7 +163,7 @@ const saveZones = async (req, res) => {
 
     const layout = await prisma.layout.findUnique({ where: { id } });
     if (!layout) return res.status(404).json({ error: 'Layout not found' });
-    if (req.tenantId && layout.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(layout, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 

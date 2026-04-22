@@ -1,4 +1,4 @@
-# SignFlow 사용자 매뉴얼
+# VueSign 사용자 매뉴얼
 
 > 버전 5.5 | 디지털 사이니지 통합 관리 플랫폼
 
@@ -40,10 +40,10 @@
 
 | 이메일 | 비밀번호 | 역할 |
 |--------|----------|------|
-| superadmin@signflow.com | superadmin123 | SUPER_ADMIN |
-| admin@signflow.com | admin123 | TENANT_ADMIN |
-| manager@signflow.com | manager123 | STORE_MANAGER |
-| user@signflow.com | user123 | USER |
+| superadmin@vuesign.com | superadmin123 | SUPER_ADMIN |
+| admin@vuesign.com | admin123 | TENANT_ADMIN |
+| manager@vuesign.com | manager123 | STORE_MANAGER |
+| user@vuesign.com | user123 | USER |
 
 ---
 
@@ -542,4 +542,4 @@
 
 ---
 
-*SignFlow v5.5 | 문의: 시스템 관리자*
+*VueSign v5.5 | 문의: 시스템 관리자*

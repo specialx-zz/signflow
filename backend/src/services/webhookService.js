@@ -37,8 +37,8 @@ class WebhookService {
 
     const headers = {
       'Content-Type': 'application/json',
-      'X-SignFlow-Event': event,
-      'X-SignFlow-Delivery': crypto.randomUUID(),
+      'X-VueSign-Event': event,
+      'X-VueSign-Delivery': crypto.randomUUID(),
     };
 
     // Add HMAC signature if secret is set
@@ -47,7 +47,7 @@ class WebhookService {
         .createHmac('sha256', webhook.secret)
         .update(payload)
         .digest('hex');
-      headers['X-SignFlow-Signature'] = `sha256=${signature}`;
+      headers['X-VueSign-Signature'] = `sha256=${signature}`;
     }
 
     let statusCode = null;

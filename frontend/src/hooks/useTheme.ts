@@ -4,7 +4,7 @@ type Theme = 'light' | 'dark' | 'system'
 
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>(() => {
-    return (localStorage.getItem('signflow-theme') as Theme) || 'system'
+    return (localStorage.getItem('vuesign-theme') as Theme) || 'system'
   })
 
   useEffect(() => {
@@ -17,7 +17,7 @@ export function useTheme() {
       root.classList.remove('dark')
     }
 
-    localStorage.setItem('signflow-theme', theme)
+    localStorage.setItem('vuesign-theme', theme)
   }, [theme])
 
   // Listen for system theme changes

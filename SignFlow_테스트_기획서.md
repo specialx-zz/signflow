@@ -1,8 +1,8 @@
-# SignFlow 전체 검수 테스트 기획서
+# VueSign 전체 검수 테스트 기획서
 
 > 작성일: 2026-04-06
 > 버전: 1.0.0
-> 대상: SignFlow 전체 시스템 (Frontend · Backend · Player)
+> 대상: VueSign 전체 시스템 (Frontend · Backend · Player)
 
 ---
 

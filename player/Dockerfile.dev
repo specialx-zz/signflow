@@ -1,0 +1,12 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+# 소스는 볼륨으로 마운트
+EXPOSE 5174
+
+# Vite dev 서버 (HMR)
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5174"]

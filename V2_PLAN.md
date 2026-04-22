@@ -1,4 +1,4 @@
-# SignFlow V2 기획서 — 멀티테넌트 SaaS 디지털 사이니지 플랫폼
+# VueSign V2 기획서 — 멀티테넌트 SaaS 디지털 사이니지 플랫폼
 
 > 작성일: 2026-03-27
 > 현재 버전: V1 (단일 서버, 단일 관리자)
@@ -95,7 +95,7 @@
 | `maxDevices` | 최대 디바이스 수 (플랜 연동) |
 | `maxStorage` | 최대 스토리지 (GB) |
 | `maxUsers` | 최대 사용자 수 |
-| `subdomain` | `tenant-a.signflow.co.kr` 형태 |
+| `subdomain` | `tenant-a.vuesign.co.kr` 형태 |
 | `defaultTransition` | 기본 전환 효과 |
 | `contentApproval` | 콘텐츠 승인 워크플로 on/off |
 | `timezone` | 기본 시간대 |
@@ -197,7 +197,7 @@ Tenant (업체)
 │  본사 서버    │ ──────────────────────→  │  Cloudflare R2   │
 │  (API 서버)  │    endpoint만 R2로 변경   │  (오브젝트 스토리지)│
 │              │                          │                  │
-│  - 메타데이터 │    ← 업로드 완료 후       │  signflow-content│
+│  - 메타데이터 │    ← 업로드 완료 후       │  vuesign-content│
 │    DB 저장   │      로컬 임시파일 삭제    │  /{tenantId}/    │
 └─────────────┘                          │   images/...     │
                                           │   videos/...     │
@@ -228,7 +228,7 @@ const r2 = new S3Client({
   }
 })
 
-const BUCKET = 'signflow-content'
+const BUCKET = 'vuesign-content'
 
 // 업로드
 async function uploadToR2(tenantId, file, filename) {
@@ -330,13 +330,13 @@ async function getDownloadUrl(key) {
 ```
 1. Cloudflare 무료 계정 가입 (cloudflare.com)
 2. 대시보드 → R2 Object Storage → 활성화
-3. 버킷 생성: "signflow-content"
+3. 버킷 생성: "vuesign-content"
 4. API 토큰 생성: R2 읽기/쓰기 권한
 5. 백엔드 .env에 설정:
    R2_ACCOUNT_ID=계정ID
    R2_ACCESS_KEY_ID=발급받은키
    R2_SECRET_ACCESS_KEY=발급받은시크릿
-   R2_BUCKET=signflow-content
+   R2_BUCKET=vuesign-content
 6. 끝! npm install @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
 ```
 
@@ -409,7 +409,7 @@ DID 모니터는 화면만 표시하는 장치이므로 콘텐츠를 재생할 *
 ```
                          ☁️ 클라우드
     ┌──────────────────────────────────────────────────┐
-    │   본사 서버 (SignFlow API + DB)                    │
+    │   본사 서버 (VueSign API + DB)                    │
     │   + Cloudflare R2 (파일 저장, 전송 무료)           │
     └────────────────────┬─────────────────────────────┘
                          │ 인터넷
@@ -951,7 +951,7 @@ POST   /api/player/:deviceId/download-complete  다운로드 완료 보고
   "contents": [
     {
       "id": "content-uuid-1",
-      "url": "https://cdn.signflow.co.kr/tenant-a/videos/abc123.mp4",
+      "url": "https://cdn.vuesign.co.kr/tenant-a/videos/abc123.mp4",
       "hash": "sha256:a1b2c3...",
       "size": 104857600,
       "type": "VIDEO",
@@ -959,7 +959,7 @@ POST   /api/player/:deviceId/download-complete  다운로드 완료 보고
     },
     {
       "id": "content-uuid-2",
-      "url": "https://cdn.signflow.co.kr/tenant-a/images/def456.jpg",
+      "url": "https://cdn.vuesign.co.kr/tenant-a/images/def456.jpg",
       "hash": "sha256:d4e5f6...",
       "size": 2048000,
       "type": "IMAGE",
@@ -977,12 +977,12 @@ POST   /api/player/:deviceId/download-complete  다운로드 완료 보고
 ### 9.1 URL 구조 변경
 
 ```
-현재:    https://signflow.co.kr/dashboard
-V2:      https://app.signflow.co.kr/dashboard          (테넌트 관리자)
-         https://admin.signflow.co.kr/dashboard         (슈퍼어드민)
+현재:    https://vuesign.co.kr/dashboard
+V2:      https://app.vuesign.co.kr/dashboard          (테넌트 관리자)
+         https://admin.vuesign.co.kr/dashboard         (슈퍼어드민)
 
 또는 서브도메인:
-         https://cafebene.signflow.co.kr/dashboard      (테넌트별)
+         https://cafebene.vuesign.co.kr/dashboard      (테넌트별)
 ```
 
 ### 9.2 새로운 페이지
@@ -1416,7 +1416,7 @@ API 서버 #1  ←─ Redis Adapter ─→  API 서버 #2
   - 커스텀 도메인 지원
 
   예: 파트너사 "스마트사인" → smartsign.co.kr 도메인으로 서비스
-      내부적으로는 SignFlow 엔진 사용
+      내부적으로는 VueSign 엔진 사용
 ```
 
 ### 13.13 모바일 앱 (관리자용)
@@ -1436,7 +1436,7 @@ API 서버 #1  ←─ Redis Adapter ─→  API 서버 #2
 
 ## 부록: 상용 사이니지 비교
 
-| 기능 | Samsung MagicINFO 9 | SignFlow V1 | SignFlow V2 (목표) |
+| 기능 | Samsung MagicINFO 9 | VueSign V1 | VueSign V2 (목표) |
 |------|:---:|:---:|:---:|
 | 멀티테넌트 | ✅ (조직) | ❌ | ✅ |
 | 콘텐츠 사전배포 | ✅ | ❌ (스트리밍) | ✅ |
@@ -1463,7 +1463,7 @@ API 서버 #1  ←─ Redis Adapter ─→  API 서버 #2
 
 ## 결론
 
-SignFlow V2의 핵심 차별점:
+VueSign V2의 핵심 차별점:
 
 1. **SaaS 기반 과금**: 설치형이 아닌 월정액 서비스로 진입 장벽 낮춤
 2. **하드웨어 무관**: 삼성 전용이 아닌, 웹 브라우저가 있는 모든 디바이스에서 작동

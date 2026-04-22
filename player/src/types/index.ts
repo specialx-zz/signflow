@@ -15,39 +15,54 @@ export interface ContentItem {
   canvasData?: CanvasData;
 }
 
-// Canvas rendering types
-export interface CanvasData {
-  version: string;
-  canvas: {
-    width: number;
-    height: number;
-    orientation: string;
-    background: string;
-  };
-  pages: CanvasPage[];
-}
+// ─── VueSign Phase W1: Canvas v2.0 데이터 모델 ─────────────────
+// 프론트엔드(frontend/src/api/canvas.ts)와 동일한 스키마.
+// 단일 페이지(flat elements), 배경이미지 + 실시간 데이터 위젯 중심.
+export type WidgetKey =
+  | 'weather.current'
+  | 'weather.current.icon'
+  | 'weather.current.temp'
+  | 'weather.today.minmax'
+  | 'weather.location'
+  | 'weather.weekly'
+  | 'air.pm.value'
+  | 'air.pm.grade'
+  | 'air.pm.card';
 
-export interface CanvasPage {
-  id: string;
-  name: string;
-  duration: number;
-  transition: string;
-  elements: CanvasElement[];
+export interface WidgetConfig {
+  locationId?: string;
+  metric?: 'pm10' | 'pm25';
+  days?: number;
+
+  textColor?: string;
+  accentColor?: string;
+  fontSize?: number;
+  fontFamily?: string;
+  bgColor?: string;
+  borderRadius?: number;
+
+  showIcon?: boolean;
+  showLocation?: boolean;
+  showMinMax?: boolean;
+
+  iconStyle?: 'filled' | 'outline';
+  [key: string]: unknown;
 }
 
 export interface CanvasElement {
   id: string;
-  type: string;
+  type: 'text' | 'image' | 'widget' | string; // legacy('shape') 들어올 수 있음
   x: number;
   y: number;
   width: number;
   height: number;
   zIndex: number;
-  opacity: number;
-  rotation: number;
+  rotation?: number;
+  opacity?: number;
   locked?: boolean;
   visible?: boolean;
-  // Text
+
+  // text
   content?: string;
   fontSize?: number;
   fontFamily?: string;
@@ -57,27 +72,39 @@ export interface CanvasElement {
   underline?: boolean;
   textAlign?: string;
   lineHeight?: number;
-  // Shape
-  shape?: string;
-  fill?: string;
-  stroke?: string;
-  strokeWidth?: number;
-  borderRadius?: number;
-  // Image
+  textShadow?: string;
+
+  // image
   src?: string;
-  fit?: string;
-  // Widget
-  widget?: string;
-  config?: Record<string, unknown>;
-  // Animation
-  animation?: {
-    enter?: string;
-    exit?: string;
-    loop?: string;
-    duration?: number;
-    delay?: number;
-    easing?: string;
+  fit?: 'contain' | 'cover' | 'fill' | string;
+
+  // widget
+  widget?: WidgetKey | string;
+  config?: WidgetConfig | Record<string, unknown>;
+}
+
+export interface CanvasData {
+  version: string; // '2.0' (v1 들어오면 normalize 필요)
+  canvas: {
+    width: number;
+    height: number;
+    backgroundColor?: string;
+    backgroundImage?: string;
+    backgroundFit?: 'contain' | 'cover' | 'fill';
+    // v1 호환
+    background?: string;
+    orientation?: string;
   };
+  // v2.0
+  elements?: CanvasElement[];
+  // v1 호환 (레거시)
+  pages?: Array<{
+    id?: string;
+    name?: string;
+    duration?: number;
+    transition?: string;
+    elements?: CanvasElement[];
+  }>;
 }
 
 export interface PlaylistItem {

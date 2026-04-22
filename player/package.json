@@ -1,5 +1,5 @@
 {
-  "name": "signflow-player",
+  "name": "vuesign-player",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -50,8 +50,8 @@
     "vite": "^5.0.8"
   },
   "build": {
-    "appId": "com.signflow.player",
-    "productName": "SignFlow Player",
+    "appId": "com.vuesign.player",
+    "productName": "VueSign Player",
     "directories": {
       "output": "release"
     },
@@ -74,7 +74,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "SignFlow Player",
+      "shortcutName": "VueSign Player",
       "installerIcon": "public/icon.ico",
       "uninstallerIcon": "public/icon.ico",
       "installerHeaderIcon": "public/icon.ico",

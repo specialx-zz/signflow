@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const { verifyTenantOwnership } = require('../middleware/tenant');
 const path = require('path');
 const fs = require('fs-extra');
 const { v4: uuidv4 } = require('uuid');
@@ -91,7 +92,7 @@ const getContentById = async (req, res) => {
       return res.status(404).json({ error: 'Content not found' });
     }
 
-    if (req.tenantId && content.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(content, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -198,7 +199,7 @@ const updateContent = async (req, res) => {
     if (!content) {
       return res.status(404).json({ error: 'Content not found' });
     }
-    if (req.tenantId && content.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(content, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -240,7 +241,7 @@ const deleteContent = async (req, res) => {
     if (!content) {
       return res.status(404).json({ error: 'Content not found' });
     }
-    if (req.tenantId && content.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(content, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -311,7 +312,7 @@ const disableContent = async (req, res) => {
   try {
     const content = await prisma.content.findUnique({ where: { id: req.params.id } });
     if (!content) return res.status(404).json({ error: 'Content not found' });
-    if (req.tenantId && content.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(content, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 
@@ -341,7 +342,7 @@ const enableContent = async (req, res) => {
   try {
     const content = await prisma.content.findUnique({ where: { id: req.params.id } });
     if (!content) return res.status(404).json({ error: 'Content not found' });
-    if (req.tenantId && content.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(content, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
 

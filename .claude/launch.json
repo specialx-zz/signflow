@@ -1,0 +1,26 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "VueSign Backend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "D:/work/claude_project/signflow/backend",
+      "port": 3001
+    },
+    {
+      "name": "VueSign Frontend (Admin)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "D:/work/claude_project/signflow/frontend",
+      "port": 5173
+    },
+    {
+      "name": "VueSign Player",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "D:/work/claude_project/signflow/player",
+      "port": 5174
+    }
+  ]
+}

@@ -1,49 +1,49 @@
 version: '3.8'
 
-# SignFlow 단독 배포용 Docker Compose
-# 사용법: docker-compose -f signflow-docker-compose.yml up -d
+# VueSign 단독 배포용 Docker Compose
+# 사용법: docker-compose -f vuesign-docker-compose.yml up -d
 
 services:
   # ─── MySQL Database ────────────────────────────────
-  signflow-mysql:
+  vuesign-mysql:
     image: mysql:8.0
-    container_name: signflow-mysql
+    container_name: vuesign-mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-changeme-root-password}"
-      MYSQL_DATABASE: signflow
-      MYSQL_USER: signflow
-      MYSQL_PASSWORD: "${MYSQL_PASSWORD:-changeme-signflow-password}"
+      MYSQL_DATABASE: vuesign
+      MYSQL_USER: vuesign
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD:-changeme-vuesign-password}"
       TZ: Asia/Seoul
     volumes:
-      - signflow-mysql-data:/var/lib/mysql
+      - vuesign-mysql-data:/var/lib/mysql
     expose:
       - "3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "signflow", "--password=${MYSQL_PASSWORD:-changeme-signflow-password}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "vuesign", "--password=${MYSQL_PASSWORD:-changeme-vuesign-password}"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
     networks:
-      - signflow-net
+      - vuesign-net
     deploy:
       resources:
         limits:
           memory: 512M
 
   # ─── Backend API ──────────────────────────────────
-  signflow-backend:
+  vuesign-backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: signflow-backend
+    container_name: vuesign-backend
     restart: unless-stopped
     environment:
       TZ: Asia/Seoul
       NODE_ENV: production
       PORT: 3001
-      DATABASE_URL: "mysql://signflow:${MYSQL_PASSWORD:-changeme-signflow-password}@signflow-mysql:3306/signflow"
+      DATABASE_URL: "mysql://vuesign:${MYSQL_PASSWORD:-changeme-vuesign-password}@vuesign-mysql:3306/vuesign"
       JWT_SECRET: "${JWT_SECRET:-change-this-secret-to-random-32chars!!}"
       JWT_EXPIRES_IN: "7d"
       SERVER_URL: "${SERVER_URL:-http://localhost}"
@@ -55,11 +55,11 @@ services:
       R2_BUCKET: "${R2_BUCKET:-}"
       R2_PUBLIC_URL: "${R2_PUBLIC_URL:-}"
     volumes:
-      - signflow-uploads:/app/uploads
+      - vuesign-uploads:/app/uploads
     expose:
       - "3001"
     depends_on:
-      signflow-mysql:
+      vuesign-mysql:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/api/health"]
@@ -72,82 +72,82 @@ services:
         limits:
           memory: 512M
     networks:
-      - signflow-net
+      - vuesign-net
 
   # ─── Nginx (Frontend + Player + Reverse Proxy) ───
-  signflow-nginx:
+  vuesign-nginx:
     image: nginx:1.25-alpine
-    container_name: signflow-nginx
+    container_name: vuesign-nginx
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/signflow-standalone.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/vuesign-standalone.conf:/etc/nginx/conf.d/default.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
-      - signflow-frontend-dist:/usr/share/nginx/signflow-admin:ro
-      - signflow-player-dist:/usr/share/nginx/signflow-player:ro
+      - vuesign-frontend-dist:/usr/share/nginx/vuesign-admin:ro
+      - vuesign-player-dist:/usr/share/nginx/vuesign-player:ro
     depends_on:
-      - signflow-backend
+      - vuesign-backend
     networks:
-      - signflow-net
+      - vuesign-net
 
   # ─── Frontend Builder (build-only) ────────────────
-  signflow-frontend-build:
+  vuesign-frontend-build:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
         VITE_API_URL: "/api"
-    container_name: signflow-frontend-build
+    container_name: vuesign-frontend-build
     volumes:
-      - signflow-frontend-dist:/app/dist
+      - vuesign-frontend-dist:/app/dist
     command: ["sh", "-c", "cp -r /app/dist/* /app/dist/"]
     profiles:
       - build
 
   # ─── Player Builder (build-only) ──────────────────
-  signflow-player-build:
+  vuesign-player-build:
     build:
       context: ./player
       dockerfile: Dockerfile
       args:
         VITE_API_URL: "/api"
-    container_name: signflow-player-build
+    container_name: vuesign-player-build
     volumes:
-      - signflow-player-dist:/app/dist
+      - vuesign-player-dist:/app/dist
     command: ["sh", "-c", "cp -r /app/dist/* /app/dist/"]
     profiles:
       - build
 
   # ─── Auto Backup ──────────────────────────────────
-  signflow-backup:
+  vuesign-backup:
     image: mysql:8.0
-    container_name: signflow-backup
+    container_name: vuesign-backup
     restart: unless-stopped
     environment:
-      MYSQL_HOST: signflow-mysql
-      MYSQL_USER: signflow
-      MYSQL_PASSWORD: "${MYSQL_PASSWORD:-changeme-signflow-password}"
-      MYSQL_DATABASE: signflow
+      MYSQL_HOST: vuesign-mysql
+      MYSQL_USER: vuesign
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD:-changeme-vuesign-password}"
+      MYSQL_DATABASE: vuesign
     volumes:
-      - signflow-backups:/backups
+      - vuesign-backups:/backups
       - ./scripts/backup.sh:/etc/periodic/daily/backup:ro
     entrypoint: /bin/sh
     command: ["-c", "chmod +x /etc/periodic/daily/backup && crond -f -l 2"]
     depends_on:
-      signflow-mysql:
+      vuesign-mysql:
         condition: service_healthy
     networks:
-      - signflow-net
+      - vuesign-net
 
 volumes:
-  signflow-mysql-data:
-  signflow-uploads:
-  signflow-frontend-dist:
-  signflow-player-dist:
-  signflow-backups:
+  vuesign-mysql-data:
+  vuesign-uploads:
+  vuesign-frontend-dist:
+  vuesign-player-dist:
+  vuesign-backups:
 
 networks:
-  signflow-net:
+  vuesign-net:
     driver: bridge

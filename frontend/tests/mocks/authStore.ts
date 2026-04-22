@@ -5,7 +5,7 @@ export function createMockUser(overrides: Partial<User> = {}): User {
   return {
     id: 'test-user-id',
     username: 'Test User',
-    email: 'test@signflow.com',
+    email: 'test@vuesign.com',
     role: 'USER',
     tenantId: 'tenant-1',
     tenantName: 'Test Tenant',

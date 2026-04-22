@@ -9,7 +9,7 @@ FROM node:20-alpine
 WORKDIR /app
 
 # 보안: 비-root 사용자
-RUN addgroup -g 1001 signflow && adduser -u 1001 -G signflow -s /bin/sh -D signflow
+RUN addgroup -g 1001 vuesign && adduser -u 1001 -G vuesign -s /bin/sh -D vuesign
 
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
@@ -17,9 +17,9 @@ COPY package*.json ./
 COPY src ./src/
 
 # 업로드 디렉토리
-RUN mkdir -p /app/uploads && chown -R signflow:signflow /app
+RUN mkdir -p /app/uploads && chown -R vuesign:vuesign /app
 
-USER signflow
+USER vuesign
 EXPOSE 3001
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \

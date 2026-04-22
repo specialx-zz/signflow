@@ -1,7 +1,7 @@
 /**
  * electronBridge.ts
  * Electron IPC 브릿지 — Electron 전용 배포 모드
- * 모든 캐시는 파일시스템에 저장됩니다. (AppData/Roaming/SignFlow Player/content-cache/)
+ * 모든 캐시는 파일시스템에 저장됩니다. (AppData/Roaming/VueSign Player/content-cache/)
  */
 
 /**

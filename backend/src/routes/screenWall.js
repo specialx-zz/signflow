@@ -8,6 +8,12 @@ const {
 const { authenticate, authorize } = require('../middleware/auth');
 const { tenantContext } = require('../middleware/tenant');
 
+// ─── Player route (no auth required – called from kiosk player) ──────────
+// MUST be declared before router.use(authenticate) below, otherwise the player's
+// unauthenticated request gets rejected with 401.
+router.get('/device/:deviceId/wall-info', getDeviceWallInfo);
+
+// ─── Admin routes (require authentication) ───────────────────────────────
 router.use(authenticate);
 router.use(tenantContext);
 
@@ -22,9 +28,6 @@ router.delete('/walls/:id', authorize('STORE_MANAGER'), deleteScreenWall);
 router.post('/walls/:id/devices', authorize('STORE_MANAGER'), assignDevice);
 router.delete('/walls/:id/devices/:deviceId', authorize('STORE_MANAGER'), removeDevice);
 router.put('/walls/:id/layout', authorize('STORE_MANAGER'), setLayout);
-
-// 플레이어용 — 장치의 월 정보
-router.get('/device/:deviceId/wall-info', getDeviceWallInfo);
 
 // 동기화 그룹
 router.get('/sync', listSyncGroups);

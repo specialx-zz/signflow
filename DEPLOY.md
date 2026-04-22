@@ -1,4 +1,4 @@
-# SignFlow 서버 배포 가이드
+# VueSign 서버 배포 가이드
 
 > 도커(Docker) 와 서버가 처음이신 분을 위한 단계별 설명입니다.
 
@@ -10,7 +10,7 @@
 |------|------|
 | 리눅스 서버 | Ubuntu 20.04 / 22.04 권장 (AWS, 카페24, 가비아 VPS 등) |
 | 도메인 | 예: `yourdomain.com` (가비아, 후이즈 등에서 구매) |
-| DNS 설정 | `signflow.yourdomain.com` → 서버 IP 연결 |
+| DNS 설정 | `vuesign.yourdomain.com` → 서버 IP 연결 |
 |          | `player.yourdomain.com` → 서버 IP 연결 |
 | 서버 최소 사양 | RAM 2GB 이상, 디스크 20GB 이상 |
 
@@ -25,8 +25,8 @@
 ├── docker-compose.yml             ← 이 프로젝트 파일
 ├── nginx/
 │   ├── default.conf               ← 기존 Nginx 설정
-│   └── signflow.conf              ← SignFlow Nginx 설정 (새로 추가)
-├── signflow/
+│   └── vuesign.conf              ← VueSign Nginx 설정 (새로 추가)
+├── vuesign/
 │   ├── backend/                   ← Node.js 백엔드 소스 (Dockerfile 포함)
 │   ├── frontend-dist/             ← 빌드된 관리자 앱 (dist 내용물)
 │   ├── player-dist/               ← 빌드된 플레이어 앱 (dist 내용물)
@@ -70,7 +70,7 @@ docker compose version
 
 | 레코드 타입 | 호스트 | 값 (서버 IP) |
 |------------|--------|-------------|
-| A | `signflow` | `123.456.789.0` ← 내 서버 IP |
+| A | `vuesign` | `123.456.789.0` ← 내 서버 IP |
 | A | `player` | `123.456.789.0` ← 내 서버 IP |
 
 > ⏰ DNS 전파에 최대 24시간 걸릴 수 있습니다 (보통 10분~1시간)
@@ -83,7 +83,7 @@ docker compose version
 ```bash
 # 서버에서
 cd /home/ubuntu
-git clone https://github.com/yourname/signflow.git deploy
+git clone https://github.com/yourname/vuesign.git deploy
 cd deploy
 ```
 
@@ -117,10 +117,10 @@ npm run build
 ```bash
 # 내 PC에서 (Git Bash)
 # 관리자 앱
-scp -r D:/work/claude_project/magicinfo/frontend/dist/* ubuntu@서버IP:/home/ubuntu/deploy/signflow/frontend-dist/
+scp -r D:/work/claude_project/magicinfo/frontend/dist/* ubuntu@서버IP:/home/ubuntu/deploy/vuesign/frontend-dist/
 
 # 플레이어 앱
-scp -r D:/work/claude_project/magicinfo/player/dist/* ubuntu@서버IP:/home/ubuntu/deploy/signflow/player-dist/
+scp -r D:/work/claude_project/magicinfo/player/dist/* ubuntu@서버IP:/home/ubuntu/deploy/vuesign/player-dist/
 ```
 
 ---
@@ -141,7 +141,7 @@ nano docker-compose.yml
 JWT_SECRET: "change-this-secret-to-random-32chars!!"
 # → 랜덤 문자열로 변경 (예: openssl rand -base64 32 명령으로 생성)
 
-FRONTEND_URL: "https://signflow.yourdomain.com"
+FRONTEND_URL: "https://vuesign.yourdomain.com"
 # → 실제 도메인으로 변경
 ```
 
@@ -154,7 +154,7 @@ openssl rand -base64 32
 
 Nginx 설정도 도메인 교체:
 ```bash
-nano /home/ubuntu/deploy/nginx/signflow.conf
+nano /home/ubuntu/deploy/nginx/vuesign.conf
 # yourdomain.com 을 실제 도메인으로 모두 교체 (Ctrl+\  로 일괄 치환)
 ```
 
@@ -175,7 +175,7 @@ docker run --rm \
   certbot/certbot certonly \
   --webroot \
   --webroot-path=/var/www/certbot \
-  -d signflow.yourdomain.com \
+  -d vuesign.yourdomain.com \
   -d player.yourdomain.com \
   --email your@email.com \
   --agree-tos \
@@ -195,7 +195,7 @@ cd /home/ubuntu/deploy
 docker compose up -d
 
 # 시작 로그 확인
-docker compose logs -f signflow-backend
+docker compose logs -f vuesign-backend
 
 # 전체 서비스 상태 확인
 docker compose ps
@@ -206,7 +206,7 @@ docker compose ps
 NAME                STATUS
 settle-db           running
 react-web           running
-signflow-backend    running
+vuesign-backend    running
 api-partner-1       running
 api-partner-2       running
 ```
@@ -217,11 +217,11 @@ api-partner-2       running
 
 | URL | 설명 |
 |-----|------|
-| `https://signflow.yourdomain.com` | 관리자 로그인 페이지 |
+| `https://vuesign.yourdomain.com` | 관리자 로그인 페이지 |
 | `https://player.yourdomain.com` | 플레이어 설정 화면 |
 
 기본 계정:
-- 이메일: `admin@signflow.com`
+- 이메일: `admin@vuesign.com`
 - 비밀번호: `admin123`
 
 > ⚠️ 첫 로그인 후 반드시 비밀번호를 변경하세요!
@@ -237,7 +237,7 @@ api-partner-2       running
 바탕화면에 바로가기 파일 만들기:
 
 ```
-대상: "C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk "https://player.yourdomain.com?server=https://signflow.yourdomain.com&name=1층로비" --noerrdialogs --disable-infobars --no-first-run
+대상: "C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk "https://player.yourdomain.com?server=https://vuesign.yourdomain.com&name=1층로비" --noerrdialogs --disable-infobars --no-first-run
 ```
 
 `name=1층로비` 부분을 각 디스플레이 이름으로 변경하면 됩니다.
@@ -247,7 +247,7 @@ api-partner-2       running
 ```bash
 # /home/pi/.config/autostart/player.desktop 파일 생성
 chromium-browser --kiosk \
-  "https://player.yourdomain.com?server=https://signflow.yourdomain.com&name=디스플레이1" \
+  "https://player.yourdomain.com?server=https://vuesign.yourdomain.com&name=디스플레이1" \
   --noerrdialogs --disable-infobars
 ```
 
@@ -261,14 +261,14 @@ cd D:\work\claude_project\magicinfo\frontend && npm run build
 cd D:\work\claude_project\magicinfo\player && npm run build
 
 # 2. 서버에 dist 파일 업로드
-scp -r frontend/dist/* ubuntu@서버IP:/home/ubuntu/deploy/signflow/frontend-dist/
-scp -r player/dist/* ubuntu@서버IP:/home/ubuntu/deploy/signflow/player-dist/
+scp -r frontend/dist/* ubuntu@서버IP:/home/ubuntu/deploy/vuesign/frontend-dist/
+scp -r player/dist/* ubuntu@서버IP:/home/ubuntu/deploy/vuesign/player-dist/
 
 # 3. 백엔드가 변경됐다면
-scp -r backend/* ubuntu@서버IP:/home/ubuntu/deploy/signflow/backend/
+scp -r backend/* ubuntu@서버IP:/home/ubuntu/deploy/vuesign/backend/
 
 # 서버에서 백엔드만 재시작
-docker compose up -d --build signflow-backend
+docker compose up -d --build vuesign-backend
 
 # 4. Nginx 설정 변경됐다면
 docker compose restart react-web
@@ -283,10 +283,10 @@ docker compose restart react-web
 docker compose logs -f
 
 # 특정 서비스 로그
-docker compose logs -f signflow-backend
+docker compose logs -f vuesign-backend
 
 # 서비스 재시작
-docker compose restart signflow-backend
+docker compose restart vuesign-backend
 
 # 전체 중지
 docker compose down
@@ -294,14 +294,14 @@ docker compose down
 # 전체 시작
 docker compose up -d
 
-# SignFlow 백엔드 컨테이너 내부 접속
-docker exec -it signflow-backend sh
+# VueSign 백엔드 컨테이너 내부 접속
+docker exec -it vuesign-backend sh
 
 # DB 파일 확인
-ls -lh /home/ubuntu/deploy/signflow/data/
+ls -lh /home/ubuntu/deploy/vuesign/data/
 
 # 업로드 파일 확인
-ls -lh /home/ubuntu/deploy/signflow/uploads/
+ls -lh /home/ubuntu/deploy/vuesign/uploads/
 ```
 
 ---
@@ -341,15 +341,15 @@ docker compose logs react-web
 ```
 
 ### 플레이어가 서버에 연결 안 될 때
-- 플레이어 URL의 `server=` 값이 `https://signflow.yourdomain.com` 인지 확인
+- 플레이어 URL의 `server=` 값이 `https://vuesign.yourdomain.com` 인지 확인
 - 브라우저 콘솔(F12)에서 에러 메시지 확인
-- 서버에서 `docker compose ps` 로 signflow-backend 가 running 인지 확인
+- 서버에서 `docker compose ps` 로 vuesign-backend 가 running 인지 확인
 
 ### 업로드가 안 될 때
 ```bash
 # 업로드 폴더 권한 확인
-ls -la /home/ubuntu/deploy/signflow/uploads/
+ls -la /home/ubuntu/deploy/vuesign/uploads/
 # 없으면 생성
-mkdir -p /home/ubuntu/deploy/signflow/uploads
-chmod 755 /home/ubuntu/deploy/signflow/uploads
+mkdir -p /home/ubuntu/deploy/vuesign/uploads
+chmod 755 /home/ubuntu/deploy/vuesign/uploads
 ```

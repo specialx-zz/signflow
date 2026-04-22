@@ -47,6 +47,7 @@ const channelRoutes = require('./routes/channels');
 const tagPlaybackRoutes = require('./routes/tagPlayback');
 const screenWallRoutes = require('./routes/screenWall');
 const fontRoutes = require('./routes/fonts');
+const weatherRoutes = require('./routes/weather');
 
 const { setupSocketIO } = require('./utils/socket');
 const { logger, requestLogger } = require('./utils/logger');
@@ -58,15 +59,32 @@ const server = http.createServer(app);
 
 // Allowed origins: comma-separated list in ALLOWED_ORIGINS env var.
 // Falls back to localhost defaults for development.
+// 5173=admin frontend, 5174=Electron player dev server.
+// 'file://','null','app://' patterns cover Electron/Capacitor production builds.
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : ['http://localhost:5173', 'http://localhost:3000'];
+  : [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:3000',
+      'file://',
+      'null',
+    ];
 
 const corsOriginFn = (origin, callback) => {
   // Allow requests with no Origin header (same-origin, server-to-server, curl)
   if (!origin) return callback(null, true);
+  // Exact match
   if (allowedOrigins.includes(origin)) return callback(null, true);
-  callback(new Error(`CORS: origin ${origin} not allowed`));
+  // Prefix match for Electron file:// and app:// schemes
+  // e.g. "file:///C:/..." should match "file://" entry
+  if (allowedOrigins.some(o => o.endsWith('://') && origin.startsWith(o))) {
+    return callback(null, true);
+  }
+  // Deny cleanly — return false instead of throwing so the response is a
+  // standard CORS failure rather than a 500 Internal Server Error.
+  console.warn(`[CORS] rejected origin: ${origin}`);
+  callback(null, false);
 };
 
 const io = new Server(server, {
@@ -149,6 +167,7 @@ app.use('/api/channels', channelRoutes);
 app.use('/api/tag-playback', tagPlaybackRoutes);
 app.use('/api/screen-wall', screenWallRoutes);
 app.use('/api/fonts', fontRoutes);
+app.use('/api/weather', weatherRoutes);
 
 // Health check (also accessible at /api/health for player ping)
 const { basicHealth, detailedHealth } = require('./controllers/healthController');
@@ -166,7 +185,7 @@ if (process.env.NODE_ENV !== 'production') {
   const swaggerUi = require('swagger-ui-express');
   const swaggerSpecs = require('./utils/swagger');
   app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
-    customSiteTitle: 'SignFlow API Documentation',
+    customSiteTitle: 'VueSign API Documentation',
     customCss: '.swagger-ui .topbar { display: none }',
   }));
 }
@@ -196,7 +215,7 @@ const PORT = process.env.PORT || 3001;
 // Don't start listening in test mode — supertest manages the server
 if (process.env.NODE_ENV !== 'test') {
   server.listen(PORT, () => {
-    console.log(`SignFlow Backend running on port ${PORT}`);
+    console.log(`VueSign Backend running on port ${PORT}`);
   });
 }
 

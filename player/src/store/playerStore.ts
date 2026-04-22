@@ -154,7 +154,7 @@ export const usePlayerStore = create<PlayerStore>()(
         set({ brightness: Math.max(10, Math.min(100, brightness)) }),
     }),
     {
-      name: 'signflow-player-store',
+      name: 'vuesign-player-store',
       // Only persist config and display settings, not runtime state
       partialize: (state) => ({
         config: state.config,

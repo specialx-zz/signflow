@@ -6,6 +6,7 @@
  */
 
 const prisma = require('../utils/prisma');
+const { verifyTenantOwnership } = require('../middleware/tenant');
 const { logger } = require('../utils/logger');
 
 /**
@@ -135,7 +136,7 @@ const approveContent = async (req, res) => {
       include: { content: { select: { tenantId: true } } }
     });
     if (!existing) return res.status(404).json({ error: '승인 요청을 찾을 수 없습니다' });
-    if (req.tenantId && existing.content?.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(existing.content, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
     if (existing.status !== 'PENDING') {
@@ -185,7 +186,7 @@ const rejectContent = async (req, res) => {
       include: { content: { select: { tenantId: true } } }
     });
     if (!existing) return res.status(404).json({ error: '승인 요청을 찾을 수 없습니다' });
-    if (req.tenantId && existing.content?.tenantId !== req.tenantId) {
+    if (!verifyTenantOwnership(existing.content, req)) {
       return res.status(403).json({ error: '접근 권한이 없습니다' });
     }
     if (existing.status !== 'PENDING') {
